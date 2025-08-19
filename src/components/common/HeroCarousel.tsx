@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import { Card } from "@/components/ui/card";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { Play, Pause } from "lucide-react";
@@ -12,10 +12,29 @@ interface MediaItem {
   alt?: string;
 }
 
+// Context para compartilhar dados do carrossel
+interface CarouselContextType {
+  currentMediaItem: MediaItem | null;
+  mediaItems: MediaItem[];
+  currentIndex: number;
+}
+
+const CarouselContext = createContext<CarouselContextType>({
+  currentMediaItem: null,
+  mediaItems: [],
+  currentIndex: 0,
+});
+
+export const useCarouselContext = () => useContext(CarouselContext);
+
 // Sistema limpo - conteúdo será gerenciado pelo administrador
 const mockMediaItems: MediaItem[] = [];
 
-const HeroCarousel = () => {
+interface HeroCarouselProps {
+  onMediaChange?: (mediaItem: MediaItem | null) => void;
+}
+
+const HeroCarousel: React.FC<HeroCarouselProps> = ({ onMediaChange }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [mediaItems] = useState<MediaItem[]>(mockMediaItems);
@@ -31,6 +50,12 @@ const HeroCarousel = () => {
 
     return () => clearInterval(interval);
   }, [isPlaying, mediaItems.length]);
+
+  // Notificar mudanças na mídia atual
+  useEffect(() => {
+    const currentMedia = mediaItems.length > 0 ? mediaItems[currentIndex] : null;
+    onMediaChange?.(currentMedia);
+  }, [currentIndex, mediaItems, onMediaChange]);
 
   const togglePlayPause = () => {
     setIsPlaying(!isPlaying);

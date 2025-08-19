@@ -9,12 +9,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import HeroCarousel from "@/components/common/HeroCarousel";
 import TrophyGallery from "@/components/common/TrophyGallery";
 
+interface MediaItem {
+  id: string;
+  type: 'image' | 'video';
+  url: string;
+  alt?: string;
+}
 
 const HomePage = () => {
   const { user } = useAuth();
   const [featuredLocations, setFeaturedLocations] = useState<Location[]>([]);
   const [latestReports, setLatestReports] = useState<Report[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentMedia, setCurrentMedia] = useState<MediaItem | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -54,11 +61,34 @@ const HomePage = () => {
   return (
     <div>
       
-      {/* Hero Section with enhanced background and new hero carousel */}
-      <section className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-r from-slate-900 via-blue-900 to-blue-600">
-        {/* Gradient background instead of placeholder image */}
+      {/* Hero Section with carousel background */}
+      <section className="relative min-h-screen flex items-center overflow-hidden">
+        {/* Dynamic background from carousel */}
+        {currentMedia ? (
+          <div className="absolute inset-0">
+            {currentMedia.type === 'image' ? (
+              <img
+                src={currentMedia.url}
+                alt={currentMedia.alt}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <video
+                src={currentMedia.url}
+                className="w-full h-full object-cover"
+                autoPlay
+                muted
+                loop
+              />
+            )}
+          </div>
+        ) : (
+          /* Fallback gradient background */
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-blue-900 to-blue-600"></div>
+        )}
         
-        <div className="absolute inset-0 bg-gradient-to-r from-fishing-blue/90 to-transparent"></div>
+        {/* Dark overlay for text readability */}
+        <div className="absolute inset-0 bg-black/40"></div>
         
         <div className="container mx-auto px-4 py-16 relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-center min-h-screen">
           <div className="max-w-2xl">
@@ -83,7 +113,7 @@ const HomePage = () => {
           
           {/* New Hero Carousel Component */}
           <div className="flex justify-center lg:justify-end">
-            <HeroCarousel />
+            <HeroCarousel onMediaChange={setCurrentMedia} />
           </div>
         </div>
         
