@@ -47,7 +47,38 @@ const ContactPage = () => {
   const handleWhatsAppClick = () => {
     const message = encodeURIComponent("Olá! Estou interessado nas pescarias da Toloni Pescarias e gostaria de mais informações.");
     const phoneNumber = "5511972225982";
-    window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
+    
+    try {
+      console.log("Tentando abrir WhatsApp...");
+      
+      // Detectar se é mobile ou desktop
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        // Para mobile: tentar app nativo primeiro, depois WhatsApp Web
+        console.log("Dispositivo móvel detectado");
+        const whatsappUrl = `whatsapp://send?phone=${phoneNumber}&text=${message}`;
+        const webUrl = `https://wa.me/${phoneNumber}?text=${message}`;
+        
+        // Tentar abrir o app nativo
+        window.location.href = whatsappUrl;
+        
+        // Fallback para WhatsApp Web após 2 segundos se o app não abrir
+        setTimeout(() => {
+          console.log("Fallback para WhatsApp Web");
+          window.location.href = webUrl;
+        }, 2000);
+      } else {
+        // Para desktop: ir direto para WhatsApp Web
+        console.log("Desktop detectado - usando WhatsApp Web");
+        const webUrl = `https://web.whatsapp.com/send?phone=${phoneNumber}&text=${message}`;
+        window.location.href = webUrl;
+      }
+    } catch (error) {
+      console.error("Erro ao abrir WhatsApp:", error);
+      // Fallback final
+      window.location.href = `https://wa.me/${phoneNumber}?text=${message}`;
+    }
   };
 
   return (
