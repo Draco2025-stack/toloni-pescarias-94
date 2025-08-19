@@ -25,7 +25,7 @@ const Footer = () => {
   }, []);
 
   const handleWhatsAppClick = () => {
-    const message = encodeURIComponent("Olá! Vi a localidade Rio Amazonas no Toloni Pescarias e gostaria de mais informações.");
+    const message = encodeURIComponent("Olá! Estou interessado nas pescarias da Toloni Pescarias e gostaria de mais informações.");
     const phoneNumber = "5511972225982";
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, '_blank');
   };
