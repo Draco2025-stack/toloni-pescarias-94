@@ -154,7 +154,7 @@ const CronogramaPage = () => {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   <Anchor className="h-8 w-8 text-blue-600" />
-                  <CardTitle>Pescaria Oceânica</CardTitle>
+                  <CardTitle>Pescaria de Água Doce</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>

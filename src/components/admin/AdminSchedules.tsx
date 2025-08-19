@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, MapPin, Plus, Edit, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, Clock, MapPin, Plus, Edit, Trash2, ChevronDown, ChevronUp, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface ScheduleDetails {
@@ -17,6 +17,7 @@ interface ScheduleDetails {
   equipment: string;
   includes: string;
   whatsapp: string;
+  media?: string;
 }
 
 interface Schedule {
@@ -53,12 +54,13 @@ const AdminSchedules = () => {
         boat: "Lancha equipada com motor 90HP, capacidade para 8 pessoas, banheiro, cobertura",
         equipment: "Varas de pesca, molinetes, iscas artificiais, puçá, caixa térmica, coletes salva-vidas",
         includes: "Café da manhã, almoço, água, refrigerantes, seguro",
-        whatsapp: "5511999999999"
+        whatsapp: "5511999999999",
+        media: ""
       }
     },
     {
       id: 2,
-      title: "Pescaria Oceânica",
+      title: "Pescaria de Água Doce",
       location: "Cabo Frio, RJ",
       date: "2024-02-20",
       time: "06:00",
@@ -74,7 +76,8 @@ const AdminSchedules = () => {
         boat: "Traineira oceânica 42 pés, GPS, sonar, radio VHF, banheiro, cozinha equipada",
         equipment: "Varas oceânicas, molinetes Penn, iscas naturais, anzóis diversos, equipamentos de segurança",
         includes: "Café da manhã, almoço, jantar, bebidas, combustível, seguro marítimo",
-        whatsapp: "5521888888888"
+        whatsapp: "5521888888888",
+        media: ""
       }
     }
   ]);
@@ -98,7 +101,8 @@ const AdminSchedules = () => {
       boat: "",
       equipment: "",
       includes: "",
-      whatsapp: ""
+      whatsapp: "",
+      media: ""
     }
   });
 
@@ -137,7 +141,8 @@ const AdminSchedules = () => {
         boat: "",
         equipment: "",
         includes: "",
-        whatsapp: ""
+        whatsapp: "",
+        media: ""
       }
     });
     setShowForm(false);
@@ -155,7 +160,7 @@ const AdminSchedules = () => {
       maxParticipants: schedule.maxParticipants.toString(),
       
       status: schedule.status,
-      details: schedule.details
+      details: { ...schedule.details, media: schedule.details.media || "" }
     });
     setShowForm(true);
   };
@@ -366,19 +371,63 @@ const AdminSchedules = () => {
                       required
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="whatsapp">Número do WhatsApp (com código do país)</Label>
-                    <Input
-                      id="whatsapp"
-                      value={formData.details.whatsapp}
-                      onChange={(e) => setFormData({
-                        ...formData, 
-                        details: {...formData.details, whatsapp: e.target.value}
-                      })}
-                      placeholder="Ex: 5511999999999"
-                      required
-                    />
-                  </div>
+                   <div>
+                     <Label htmlFor="whatsapp">Número do WhatsApp (com código do país)</Label>
+                     <Input
+                       id="whatsapp"
+                       value={formData.details.whatsapp}
+                       onChange={(e) => setFormData({
+                         ...formData, 
+                         details: {...formData.details, whatsapp: e.target.value}
+                       })}
+                       placeholder="Ex: 5511999999999"
+                       required
+                     />
+                   </div>
+                   <div>
+                     <Label htmlFor="media">Imagem ou Vídeo da Pescaria</Label>
+                     <div className="space-y-2">
+                       <Input
+                         id="media"
+                         type="file"
+                         accept=".jpg,.jpeg,.png,.mp4"
+                         onChange={(e) => {
+                           const file = e.target.files?.[0];
+                           if (file) {
+                             if (file.size > 10 * 1024 * 1024) {
+                               alert('Arquivo deve ter no máximo 10MB');
+                               return;
+                             }
+                             const url = URL.createObjectURL(file);
+                             setFormData({
+                               ...formData,
+                               details: {...formData.details, media: url}
+                             });
+                           }
+                         }}
+                       />
+                       <p className="text-xs text-gray-500">
+                         Formatos aceitos: JPG, JPEG, PNG, MP4 (máx. 10MB)
+                       </p>
+                       {formData.details.media && (
+                         <div className="mt-2">
+                           {formData.details.media.endsWith('.mp4') ? (
+                             <video 
+                               src={formData.details.media} 
+                               className="w-32 h-20 object-cover rounded border"
+                               controls
+                             />
+                           ) : (
+                             <img 
+                               src={formData.details.media} 
+                               alt="Preview" 
+                               className="w-32 h-20 object-cover rounded border"
+                             />
+                           )}
+                         </div>
+                       )}
+                     </div>
+                   </div>
                 </div>
               </div>
 
@@ -399,15 +448,16 @@ const AdminSchedules = () => {
                     maxParticipants: "",
                     
                     status: "ativo",
-                    details: {
-                      trajectory: "",
-                      departure: "",
-                      return: "",
-                      boat: "",
-                      equipment: "",
-                      includes: "",
-                      whatsapp: ""
-                    }
+        details: {
+          trajectory: "",
+          departure: "",
+          return: "",
+          boat: "",
+          equipment: "",
+          includes: "",
+          whatsapp: "",
+          media: ""
+        }
                   });
                 }}>
                   Cancelar
@@ -460,7 +510,25 @@ const AdminSchedules = () => {
                 </div>
               </div>
               
-              <p className="text-gray-700 mb-3">{schedule.description}</p>
+               <p className="text-gray-700 mb-3">{schedule.description}</p>
+               
+               {schedule.details.media && (
+                 <div className="mb-4">
+                   {schedule.details.media.endsWith('.mp4') ? (
+                     <video 
+                       src={schedule.details.media} 
+                       className="w-full max-w-md h-48 object-cover rounded-lg"
+                       controls
+                     />
+                   ) : (
+                     <img 
+                       src={schedule.details.media} 
+                       alt={schedule.title} 
+                       className="w-full max-w-md h-48 object-cover rounded-lg"
+                     />
+                   )}
+                 </div>
+               )}
               
               {expandedSchedule === schedule.id && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
