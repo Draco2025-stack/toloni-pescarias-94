@@ -1,0 +1,117 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 180 30% 99%;
+    --foreground: 200 15% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 200 15% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 15% 15%;
+
+    --primary: 200 75% 29%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 150 50% 24%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 45 33% 87%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 45 55% 80%;
+    --accent-foreground: 200 15% 15%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 200 24% 90%;
+    --input: 200 24% 90%;
+    --ring: 200 75% 29%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 198 44% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 198 44% 12%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 198 44% 12%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 200 65% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 150 50% 30%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 198 44% 18%;
+    --muted-foreground: 215 20.2% 75.1%;
+
+    --accent: 45 35% 40%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 198 44% 18%;
+    --input: 198 44% 18%;
+    --ring: 200 65% 45%;
+    
+    --sidebar-background: 198 44% 10%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 200 65% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 198 44% 16%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 198 44% 16%;
+    --sidebar-ring: 200 65% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  .ripple-effect {
+    @apply relative overflow-hidden;
+  }
+  
+  .ripple-effect::after {
+    @apply content-[''] absolute rounded-full bg-white/20 w-full h-full top-0 left-0 scale-0 opacity-0 transition-all duration-500;
+  }
+  
+  .ripple-effect:active::after {
+    @apply scale-[2.5] opacity-0 transition-none;
+    transition: 0s;
+  }
+}
