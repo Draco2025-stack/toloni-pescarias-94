@@ -11,7 +11,8 @@ interface LocationCardProps {
 
 const LocationCard = ({ location }: LocationCardProps) => {
   const openWhatsApp = (whatsapp: string) => {
-    const url = `https://wa.me/5511972225982?text=Olá! Vi a localidade ${location.name} no FishTales e gostaria de mais informações.`;
+    const message = encodeURIComponent("Olá! Estou interessado nas pescarias da Toloni Pescarias e gostaria de mais informações.");
+    const url = `https://wa.me/5511972225982?text=${message}`;
     window.open(url, "_blank");
   };
 
