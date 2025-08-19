@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Fish, Instagram, Facebook, Twitter, Mail, MapPin, ChevronDown } from "lucide-react";
+import { Fish, MapPin, ChevronDown } from "lucide-react";
 import toloniLogoOfficial from "/lovable-uploads/18ea2e85-531f-4791-a50b-4dbd83b5f5dd.png";
 import { getLocations, Location } from "@/services/mockData";
 
@@ -42,20 +42,6 @@ const Footer = () => {
             <p className="text-sm text-gray-200 mb-4">
               Sua plataforma para compartilhar experiências de pesca e conectar-se com outros pescadores.
             </p>
-            <div className="flex space-x-4">
-              <a href="#" className="hover:text-fishing-sand transition-colors">
-                <Instagram className="h-5 w-5" />
-              </a>
-              <a href="#" className="hover:text-fishing-sand transition-colors">
-                <Facebook className="h-5 w-5" />
-              </a>
-              <a href="#" className="hover:text-fishing-sand transition-colors">
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a href="mailto:contato@tolonipescarias.com" className="hover:text-fishing-sand transition-colors">
-                <Mail className="h-5 w-5" />
-              </a>
-            </div>
           </div>
           
           <div>
