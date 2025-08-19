@@ -35,8 +35,7 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <Link to="/" className="flex items-center space-x-2 mb-4">
-              <img src={toloniLogoOfficial} alt="Toloni Pescarias" className="h-8 w-auto" />
+            <Link to="/" className="mb-4 inline-block">
               <span className="text-2xl font-heading font-bold">Toloni Pescarias</span>
             </Link>
             <p className="text-sm text-gray-200 mb-4">
