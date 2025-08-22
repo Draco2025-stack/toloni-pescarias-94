@@ -40,7 +40,7 @@ const RegisterPage = () => {
     try {
       await register(name, email, password);
       toast.success("Conta criada com sucesso! Verifique seu email para ativá-la.");
-      navigate("/login");
+      navigate("/register-success", { state: { email } });
     } catch (err) {
       // Error is handled by the auth context
     }
