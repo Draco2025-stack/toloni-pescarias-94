@@ -25,7 +25,7 @@ const ForgotPasswordPage = () => {
       
       // In a real application, this would make an API call to initiate password reset
       setSubmitted(true);
-      toast.success("Link de recuperação enviado! Verifique seu e-mail.");
+      toast.success("Link de redefinição enviado! Verifique seu e-mail e pasta de spam.");
     } catch (err) {
       toast.error("Erro ao enviar o link de recuperação. Tente novamente.");
     } finally {
@@ -36,8 +36,8 @@ const ForgotPasswordPage = () => {
   return (
     <div className="min-h-[calc(100vh-64px)] bg-gray-50 flex flex-col items-center py-12 px-4">
       <PageHeader 
-        title="Recuperar Senha" 
-        description="Digite seu e-mail para receber um link de recuperação"
+        title="Redefinir Senha" 
+        description="Digite seu e-mail para receber um link de redefinição de senha"
       />
 
       <div className="max-w-md w-full space-y-8 mt-8">
@@ -69,7 +69,7 @@ const ForgotPasswordPage = () => {
                     Enviando...
                   </>
                 ) : (
-                  "Enviar link de recuperação"
+                  "Enviar link de redefinição"
                 )}
               </Button>
               
@@ -88,9 +88,14 @@ const ForgotPasswordPage = () => {
               </div>
               <h3 className="text-xl font-medium text-gray-900">E-mail enviado!</h3>
               <p className="text-gray-600">
-                Enviamos um link de recuperação para <strong>{email}</strong>. 
-                Verifique sua caixa de entrada e siga as instruções.
+                Enviamos um link de redefinição de senha para <strong>{email}</strong>. 
+                Verifique sua caixa de entrada e também a pasta de spam.
               </p>
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  💡 <strong>Dica:</strong> Se não encontrar o e-mail, verifique sua pasta de spam ou lixo eletrônico.
+                </p>
+              </div>
               <div className="mt-6">
                 <Link to="/login">
                   <Button variant="outline" className="w-full">
