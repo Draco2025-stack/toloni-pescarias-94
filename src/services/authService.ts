@@ -213,4 +213,38 @@ export class AuthService {
       body: JSON.stringify({ email })
     });
   }
+
+  // Forgot password
+  static async forgotPassword(email: string): Promise<AuthResponse> {
+    if (isDevelopment) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        success: true,
+        message: 'Se o email existir em nossa base de dados, você receberá instruções para redefinir sua senha.'
+      };
+    }
+    
+    return this.realApiCall('/auth/forgot-password.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  // Reset password
+  static async resetPassword(token: string, password: string): Promise<AuthResponse> {
+    if (isDevelopment) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return {
+        success: true,
+        message: 'Senha redefinida com sucesso! Faça login com sua nova senha.'
+      };
+    }
+    
+    return this.realApiCall('/auth/reset-password.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, password }),
+    });
+  }
 }
