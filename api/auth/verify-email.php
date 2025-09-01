@@ -28,7 +28,12 @@ if (!isset($_GET['token'])) {
             // Log de segurança
             logSecurityEvent($pdo, $user['id'], 'EMAIL_VERIFIED', "Email: " . $user['email']);
             
-            $success = 'Email verificado com sucesso! Você já pode fazer login.';
+            // Criar sessão automaticamente após verificação
+            createUserSession($pdo, $user['id']);
+            
+            // Redirecionar para página React que detectará o login
+            header('Location: /email-verified?verified=1');
+            exit;
         }
     } catch (Exception $e) {
         error_log("Email verification error: " . $e->getMessage());

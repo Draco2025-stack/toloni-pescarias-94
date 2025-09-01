@@ -10,6 +10,7 @@ import RegisterPage from '@/pages/RegisterPage';
 import RegisterSuccessPage from '@/pages/RegisterSuccessPage';
 import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/ResetPasswordPage';
+import EmailVerifiedPage from '@/pages/EmailVerifiedPage';
 import ProfilePage from '@/pages/ProfilePage';
 import ReportsPage from '@/pages/ReportsPage';
 import MyReportsPage from '@/pages/MyReportsPage';
@@ -57,6 +58,7 @@ function App() {
               <Route path="register-success" element={<RegisterSuccessPage />} />
               <Route path="forgot-password" element={<ForgotPasswordPage />} />
               <Route path="reset-password" element={<ResetPasswordPage />} />
+              <Route path="email-verified" element={<EmailVerifiedPage />} />
               <Route path="profile" element={
                 <ProtectedRoute>
                   <ProfilePage />
