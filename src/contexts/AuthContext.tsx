@@ -10,8 +10,8 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  resetPassword: (token: string, newPassword: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<{ success: boolean; message?: string }>;
+  resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
   resendVerification: (email: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
@@ -154,22 +154,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Forgot password function - in a real app, this would make an API call
+  // Forgot password function
   const forgotPassword = async (email: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Em produção, verificação real seria feita no backend
-      // Para desenvolvimento, aceitar qualquer email válido
-      
-      // In a real app, this would send an email with a recovery link
-      console.log(`Password reset link would be sent to ${email}`);
-      
-      // Success - no error needed
+      const result = await AuthService.forgotPassword(email);
+      return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao enviar e-mail de recuperação");
       throw err;
@@ -178,19 +170,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Reset password function - in a real app, this would make an API call
+  // Reset password function
   const resetPassword = async (token: string, newPassword: string) => {
     setIsLoading(true);
     setError(null);
     
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // In a real app, this would verify the token and update the password in the database
-      console.log(`Password would be reset with token: ${token}`);
-      
-      // Success - no error needed
+      const result = await AuthService.resetPassword(token, newPassword);
+      return result;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao redefinir senha");
       throw err;

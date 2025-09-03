@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import PageHeader from "@/components/common/PageHeader";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { resetPassword } = useAuth();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,12 +46,14 @@ const ResetPasswordPage = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const result = await resetPassword(token, password);
       
-      // In a real app, this would send a request to the server to reset the password
-      toast.success("Senha redefinida com sucesso!");
-      navigate("/login");
+      if (result.success) {
+        toast.success("Senha redefinida com sucesso!");
+        navigate("/login");
+      } else {
+        setError(result.message || "Erro ao redefinir senha. Tente novamente.");
+      }
     } catch (err) {
       setError("Erro ao redefinir senha. Tente novamente.");
     } finally {

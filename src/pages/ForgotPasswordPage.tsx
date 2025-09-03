@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -13,21 +12,25 @@ const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const { error } = useAuth();
+  const { forgotPassword } = useAuth();
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError(null);
     
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const result = await forgotPassword(email);
       
-      // In a real application, this would make an API call to initiate password reset
-      setSubmitted(true);
-      toast.success("Link de redefinição enviado! Verifique seu e-mail e pasta de spam.");
+      if (result.success) {
+        setSubmitted(true);
+        toast.success("Link de redefinição enviado! Verifique seu e-mail e pasta de spam.");
+      } else {
+        setError(result.message || "Erro ao enviar o link de recuperação. Tente novamente.");
+      }
     } catch (err) {
-      toast.error("Erro ao enviar o link de recuperação. Tente novamente.");
+      setError("Erro ao enviar o link de recuperação. Tente novamente.");
     } finally {
       setIsSubmitting(false);
     }
