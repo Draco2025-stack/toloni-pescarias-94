@@ -26,8 +26,9 @@ const MOCK_ADMIN_USER: AuthUser = {
 };
 
 // Detectar ambiente
-const isProduction = window.location.hostname === 'tolonipescarias.com.br';
+const isProduction = window.location.hostname.includes('tolonipescarias.com.br');
 const isDevelopment = window.location.hostname === 'localhost' || 
+                      window.location.hostname.includes('lovable.dev') ||
                       window.location.hostname.includes('lovable');
 
 // Mock storage para simular sessão

@@ -42,7 +42,12 @@ const isDomainAllowed = (email: string): boolean => {
 };
 
 // API base URL - configurado para ambiente Lovable e produção
-const API_BASE = window.location.hostname === 'localhost' || window.location.hostname.includes('lovable') 
+const isHostingerProduction = window.location.hostname.includes('tolonipescarias.com.br');
+const isDevelopmentEnv = window.location.hostname === 'localhost' || 
+                        window.location.hostname.includes('lovable.dev') ||
+                        window.location.hostname.includes('lovable');
+
+const API_BASE = isDevelopmentEnv 
   ? '/api'  // Usar API local no ambiente Lovable
   : 'https://tolonipescarias.com.br/api';  // URL real da Hostinger em produção
 
@@ -93,10 +98,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Verificar email apenas em produção e para não-admins
-      const isDev = window.location.hostname === 'localhost' || window.location.hostname.includes('lovable');
       const userIsAdmin = isAdminEmail(email);
       
-      if (data.user && !data.user.emailVerified && !isDev && !userIsAdmin) {
+      if (data.user && !data.user.emailVerified && !isDevelopmentEnv && !userIsAdmin) {
         throw new Error('Email não verificado. Verifique sua caixa de entrada.');
       }
 

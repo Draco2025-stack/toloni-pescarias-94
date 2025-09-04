@@ -1,11 +1,24 @@
 
 <?php
-// Configurações de banco de dados
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'toloni_pescarias');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_CHARSET', 'utf8mb4');
+// Detectar ambiente
+$isProduction = strpos($_SERVER['HTTP_HOST'], 'tolonipescarias.com.br') !== false;
+
+// Configurações de banco de dados baseadas no ambiente
+if ($isProduction) {
+    // Configurações da Hostinger
+    define('DB_HOST', 'localhost');
+    define('DB_NAME', 'u123456789_toloni'); // Ajustar com o nome real do banco
+    define('DB_USER', 'u123456789_user');   // Ajustar com o usuário real
+    define('DB_PASS', 'SuaSenhaSegura123'); // Ajustar com a senha real
+    define('DB_CHARSET', 'utf8mb4');
+} else {
+    // Configurações de desenvolvimento
+    define('DB_HOST', 'localhost');
+    define('DB_NAME', 'toloni_pescarias');
+    define('DB_USER', 'root');
+    define('DB_PASS', '');
+    define('DB_CHARSET', 'utf8mb4');
+}
 
 try {
     $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
