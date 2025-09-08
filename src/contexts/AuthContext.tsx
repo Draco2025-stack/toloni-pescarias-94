@@ -24,10 +24,11 @@ const ADMIN_EMAIL = "toloni.focos@gmail.com";
 // Domínios permitidos para cadastro
 const ALLOWED_DOMAINS = [
   "tolonipescarias.com",
-  "gmail.com",
+  "gmail.com", 
   "hotmail.com",
   "outlook.com",
-  "yahoo.com"
+  "yahoo.com",
+  "uol.com.br"
 ];
 
 // Função para determinar se é o administrador

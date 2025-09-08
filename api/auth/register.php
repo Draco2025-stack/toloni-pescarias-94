@@ -4,8 +4,11 @@ header('Content-Type: application/json; charset=utf-8');
 // Configurar CORS dinamicamente baseado no ambiente
 $allowedOrigins = [
     'https://tolonipescarias.com.br',
+    'https://tolonipescarias.com',
     'http://localhost:8080',
-    'https://localhost:8080'
+    'https://localhost:8080',
+    'http://localhost:5173',
+    'https://localhost:5173'
 ];
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -42,7 +45,8 @@ $ALLOWED_DOMAINS = [
     'gmail.com',
     'hotmail.com',
     'outlook.com',
-    'yahoo.com'
+    'yahoo.com',
+    'uol.com.br'
 ];
 
 function isDomainAllowed($email, $allowedDomains) {
