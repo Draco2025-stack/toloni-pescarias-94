@@ -24,21 +24,22 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Eye, Star, Trash2 } from "lucide-react";
-import { getAllReports, Report, formatDate } from "@/services/mockData";
+import { getAdminReports, updateReportStatus, AdminReport } from "@/services/adminService";
 import { useTrophyWebhook } from "@/services/trophyWebhook";
 
 const AdminReports = () => {
   const { notifyReportDeleted } = useTrophyWebhook();
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<AdminReport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchReports = async () => {
       try {
-        const data = await getAllReports();
+        const data = await getAdminReports();
         setReports(data);
       } catch (error) {
         console.error("Error fetching reports:", error);
+        toast.error("Erro ao carregar relatórios");
       } finally {
         setIsLoading(false);
       }
@@ -60,18 +61,39 @@ const AdminReports = () => {
     }
   };
 
-  const handleToggleFeatured = (id: string) => {
-    setReports((prev) =>
-      prev.map((report) =>
-        report.id === id
-          ? { ...report, featured: !report.featured }
-          : report
-      )
-    );
-    
+  const handleToggleFeatured = async (id: string) => {
     const report = reports.find((r) => r.id === id);
-    const action = report?.featured ? "removido dos destaques" : "destacado";
-    toast.success(`Relato ${action} com sucesso!`);
+    if (!report) return;
+
+    try {
+      const result = await updateReportStatus(id, report.approved, !report.featured);
+      if (result.success) {
+        setReports((prev) =>
+          prev.map((r) =>
+            r.id === id ? { ...r, featured: !r.featured } : r
+          )
+        );
+        
+        const action = report.featured ? "removido dos destaques" : "destacado";
+        toast.success(`Relato ${action} com sucesso!`);
+      } else {
+        toast.error(result.message || "Erro ao atualizar relatório");
+      }
+    } catch (error) {
+      console.error("Error toggling featured:", error);
+      toast.error("Erro ao atualizar relatório");
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -99,12 +121,12 @@ const AdminReports = () => {
               {reports.map((report) => (
                 <TableRow key={report.id}>
                   <TableCell className="font-medium">{report.title}</TableCell>
-                  <TableCell>{report.userName}</TableCell>
-                  <TableCell>{report.locationName}</TableCell>
-                  <TableCell>{formatDate(report.createdAt)}</TableCell>
+                  <TableCell>{report.user_name}</TableCell>
+                  <TableCell>{report.location_name}</TableCell>
+                  <TableCell>{formatDate(report.created_at)}</TableCell>
                   <TableCell>
                     <Switch
-                      checked={report.featured || false}
+                      checked={report.featured}
                       onCheckedChange={() => handleToggleFeatured(report.id)}
                     />
                   </TableCell>

@@ -23,37 +23,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Eye, Trash2 } from "lucide-react";
-import { getAllReports, getCommentsByReport, Report, Comment, formatDate } from "@/services/mockData";
+import { getAdminComments, deleteCommentAdmin, AdminComment } from "@/services/adminService";
 
 const AdminComments = () => {
-  const [comments, setComments] = useState<(Comment & { reportTitle?: string })[]>([]);
+  const [comments, setComments] = useState<AdminComment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchComments = async () => {
       try {
-        // Get all reports
-        const reports = await getAllReports();
-        
-        // Get all comments for each report
-        const allCommentsPromises = reports.map(async (report: Report) => {
-          const reportComments = await getCommentsByReport(report.id);
-          return reportComments.map(comment => ({
-            ...comment,
-            reportTitle: report.title
-          }));
-        });
-        
-        const allComments = (await Promise.all(allCommentsPromises)).flat();
-        
-        // Sort by date (newest first)
-        const sortedComments = allComments.sort(
-          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        );
-        
-        setComments(sortedComments);
+        const data = await getAdminComments();
+        setComments(data);
       } catch (error) {
         console.error("Error fetching comments:", error);
+        toast.error("Erro ao carregar comentários");
       } finally {
         setIsLoading(false);
       }
@@ -62,9 +45,30 @@ const AdminComments = () => {
     fetchComments();
   }, []);
 
-  const handleDeleteComment = (id: string) => {
-    setComments((prev) => prev.filter((comment) => comment.id !== id));
-    toast.success("Comentário excluído com sucesso!");
+  const handleDeleteComment = async (id: string) => {
+    try {
+      const result = await deleteCommentAdmin(id);
+      if (result.success) {
+        setComments((prev) => prev.filter((comment) => comment.id !== id));
+        toast.success("Comentário excluído com sucesso!");
+      } else {
+        toast.error(result.message || "Erro ao excluir comentário");
+      }
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error("Erro ao excluir comentário");
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
@@ -90,23 +94,23 @@ const AdminComments = () => {
             <TableBody>
               {comments.map((comment) => (
                 <TableRow key={comment.id}>
-                  <TableCell className="font-medium">{comment.userName}</TableCell>
-                  <TableCell className="max-w-xs">
-                    <div className="truncate">{comment.content}</div>
-                  </TableCell>
-                  <TableCell>{comment.reportTitle}</TableCell>
-                  <TableCell>{formatDate(comment.createdAt)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        asChild
-                      >
-                        <Link to={`/reports/${comment.reportId}`}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
+                <TableCell className="font-medium">{comment.user_name}</TableCell>
+                <TableCell className="max-w-xs">
+                  <div className="truncate">{comment.content}</div>
+                </TableCell>
+                <TableCell>{comment.report_title}</TableCell>
+                <TableCell>{formatDate(comment.created_at)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      asChild
+                    >
+                      <Link to={`/reports/${comment.id}`}>
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </Button>
                       
                       <AlertDialog>
                         <AlertDialogTrigger asChild>

@@ -118,7 +118,7 @@ export const getRecentActivity = async (): Promise<ActivityItem[]> => {
 // Get all users (admin)
 export const getAdminUsers = async (): Promise<AdminUser[]> => {
   try {
-    const response = await fetch(`${API_BASE}/api/admin/index.php?action=users`, {
+    const response = await fetch(`${API_BASE}/api/admin/users.php`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -142,7 +142,7 @@ export const getAdminUsers = async (): Promise<AdminUser[]> => {
 // Get all reports (admin)
 export const getAdminReports = async (): Promise<AdminReport[]> => {
   try {
-    const response = await fetch(`${API_BASE}/api/admin/index.php?action=reports`, {
+    const response = await fetch(`${API_BASE}/api/admin/reports.php`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -166,7 +166,7 @@ export const getAdminReports = async (): Promise<AdminReport[]> => {
 // Get all locations (admin)
 export const getAdminLocations = async (): Promise<AdminLocation[]> => {
   try {
-    const response = await fetch(`${API_BASE}/api/admin/index.php?action=locations`, {
+    const response = await fetch(`${API_BASE}/api/admin/locations.php`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -190,7 +190,7 @@ export const getAdminLocations = async (): Promise<AdminLocation[]> => {
 // Get all comments (admin)
 export const getAdminComments = async (): Promise<AdminComment[]> => {
   try {
-    const response = await fetch(`${API_BASE}/api/admin/index.php?action=comments`, {
+    const response = await fetch(`${API_BASE}/api/admin/comments.php`, {
       method: 'GET',
       credentials: 'include',
       headers: {

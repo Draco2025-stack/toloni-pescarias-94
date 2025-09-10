@@ -33,10 +33,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { getLocations, Location } from "@/services/mockData";
+import { getAdminLocations, updateLocationStatus, AdminLocation } from "@/services/adminService";
 import FileUpload from "@/components/ui/file-upload";
 
-interface ExtendedLocation extends Location {
+interface ExtendedAdminLocation extends AdminLocation {
+  whatsapp?: string;
   especies?: string;
   melhorEpoca?: string;
   estrutura?: string;
@@ -44,11 +45,11 @@ interface ExtendedLocation extends Location {
 }
 
 const AdminLocations = () => {
-  const [locations, setLocations] = useState<ExtendedLocation[]>([]);
+  const [locations, setLocations] = useState<ExtendedAdminLocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [currentLocation, setCurrentLocation] = useState<Partial<ExtendedLocation>>({});
+  const [currentLocation, setCurrentLocation] = useState<Partial<ExtendedAdminLocation>>({});
   const [locationToDelete, setLocationToDelete] = useState<string | null>(null);
   const [showCharacteristics, setShowCharacteristics] = useState(false);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
@@ -56,10 +57,11 @@ const AdminLocations = () => {
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        const data = await getLocations();
-        setLocations(data);
+        const data = await getAdminLocations();
+        setLocations(data as ExtendedAdminLocation[]);
       } catch (error) {
         console.error("Error fetching locations:", error);
+        toast.error("Erro ao carregar localidades");
       } finally {
         setIsLoading(false);
       }
@@ -76,7 +78,7 @@ const AdminLocations = () => {
     setDialogOpen(true);
   };
 
-  const openEditDialog = (location: ExtendedLocation) => {
+  const openEditDialog = (location: ExtendedAdminLocation) => {
     setCurrentLocation(location);
     setIsEditing(true);
     setShowCharacteristics(true);
@@ -101,40 +103,41 @@ const AdminLocations = () => {
     setShowCharacteristics(true);
   };
 
-  const handleSave = () => {
-    if (isEditing) {
-      // Update existing location
-      const updatedLocations = locations.map((loc) =>
-        loc.id === currentLocation.id ? { ...loc, ...currentLocation } as ExtendedLocation : loc
-      );
-      setLocations(updatedLocations);
-      toast.success("Localidade atualizada com sucesso!");
-    } else {
-      // Add new location
-      const imageUrl = selectedImage ? URL.createObjectURL(selectedImage) : "";
-      const newLocation: ExtendedLocation = {
-        id: String(locations.length + 1),
-        name: currentLocation.name || "",
-        description: currentLocation.description || "",
-        image: imageUrl,
-        whatsapp: currentLocation.whatsapp || "",
-        featured: currentLocation.featured || false,
-        especies: currentLocation.especies || "",
-        melhorEpoca: currentLocation.melhorEpoca || "",
-        estrutura: currentLocation.estrutura || "",
-        atividades: currentLocation.atividades || "",
-      };
-      
-      setLocations([...locations, newLocation]);
-      toast.success("Localidade adicionada com sucesso!");
+  const handleToggleFeatured = async (id: string) => {
+    const location = locations.find((l) => l.id === id);
+    if (!location) return;
+
+    try {
+      const result = await updateLocationStatus(id, location.approved, !location.featured);
+      if (result.success) {
+        setLocations((prev) =>
+          prev.map((loc) =>
+            loc.id === id ? { ...loc, featured: !loc.featured } : loc
+          )
+        );
+        
+        const action = location.featured ? "removida dos destaques" : "destacada";
+        toast.success(`Localidade ${action} com sucesso!`);
+      } else {
+        toast.error(result.message || "Erro ao atualizar localidade");
+      }
+    } catch (error) {
+      console.error("Error toggling featured:", error);
+      toast.error("Erro ao atualizar localidade");
     }
-    
+  };
+
+  const handleSave = () => {
+    // This would be implemented with real API calls
+    // For now, just close the dialog
     setDialogOpen(false);
     setShowCharacteristics(false);
     setSelectedImage(null);
+    toast.info("Funcionalidade de edição será implementada com API completa");
   };
 
   const handleDelete = (id: string) => {
+    // This would be implemented with real API calls
     setLocations((prev) => prev.filter((loc) => loc.id !== id));
     toast.success("Localidade excluída com sucesso!");
     setLocationToDelete(null);
@@ -171,40 +174,20 @@ const AdminLocations = () => {
               {locations.map((location) => (
                 <TableRow key={location.id}>
                   <TableCell>
-                    {location.image ? (
-                      <div className="w-16 h-12 rounded overflow-hidden">
-                        <img
-                          src={location.image}
-                          alt={location.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) parent.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-16 h-12 rounded bg-gray-100 flex items-center justify-center">
-                        <span className="text-xs text-gray-400">Sem imagem</span>
-                      </div>
-                    )}
+                    <div className="w-16 h-12 rounded bg-gray-100 flex items-center justify-center">
+                      <span className="text-xs text-gray-400">Sem imagem</span>
+                    </div>
                   </TableCell>
                   <TableCell className="font-medium">{location.name}</TableCell>
                   <TableCell className="max-w-xs">
                     <div className="truncate">{location.description}</div>
                   </TableCell>
-                  <TableCell>{location.whatsapp}</TableCell>
+                  <TableCell>{location.suggested_by}</TableCell>
                   <TableCell>
-                    {location.featured ? (
-                      <span className="inline-block bg-green-100 text-green-800 px-2 py-1 text-xs rounded-full">
-                        Sim
-                      </span>
-                    ) : (
-                      <span className="inline-block bg-gray-100 text-gray-800 px-2 py-1 text-xs rounded-full">
-                        Não
-                      </span>
-                    )}
+                    <Switch
+                      checked={location.featured}
+                      onCheckedChange={() => handleToggleFeatured(location.id)}
+                    />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
