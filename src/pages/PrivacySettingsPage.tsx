@@ -1,13 +1,14 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { getPrivacySettings, updatePrivacySettings, PrivacySettings } from "@/services/userService";
 
 const PrivacySettingsPage = () => {
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<PrivacySettings>({
     profileVisibility: true,
     showEmail: false,
     allowMessages: true,
@@ -17,6 +18,23 @@ const PrivacySettingsPage = () => {
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Carregar configurações ao montar o componente
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const userSettings = await getPrivacySettings();
+        setSettings(userSettings);
+      } catch (error) {
+        toast.error("Erro ao carregar configurações de privacidade");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   const handleSettingChange = (setting: keyof typeof settings) => {
     setSettings(prev => ({
@@ -25,14 +43,18 @@ const PrivacySettingsPage = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    setTimeout(() => {
+    try {
+      await updatePrivacySettings(settings);
       toast.success("Configurações de privacidade atualizadas com sucesso");
+    } catch (error) {
+      toast.error("Erro ao salvar configurações de privacidade");
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -42,7 +64,14 @@ const PrivacySettingsPage = () => {
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {isLoading ? (
+              <div className="space-y-4">
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -140,6 +169,7 @@ const PrivacySettingsPage = () => {
                 </Button>
               </div>
             </form>
+            )}
           </div>
         </div>
       </div>

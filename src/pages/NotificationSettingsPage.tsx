@@ -1,26 +1,45 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PageHeader from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
+import { getNotificationSettings, updateNotificationSettings, NotificationSettings } from "@/services/userService";
 
 const NotificationSettingsPage = () => {
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<NotificationSettings>({
     emailNotifications: true,
     pushNotifications: true,
     newReports: true,
-    comments: true,
-    likes: false,
+    newComments: true,
+    commentReplies: true,
+    likes: true,
     follows: true,
-    weeklyDigest: true,
-    fishingReminders: true,
-    weatherAlerts: true,
-    systemUpdates: false
+    systemUpdates: true,
+    newsletter: false,
+    fishingTips: true,
+    locationSuggestions: true
   });
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Carregar configurações ao montar o componente
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const userSettings = await getNotificationSettings();
+        setSettings(userSettings);
+      } catch (error) {
+        toast.error("Erro ao carregar configurações de notificação");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   const handleSettingChange = (setting: keyof typeof settings) => {
     setSettings(prev => ({
@@ -29,14 +48,18 @@ const NotificationSettingsPage = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    setTimeout(() => {
-      toast.success("Configurações de notificações atualizadas com sucesso");
+    try {
+      await updateNotificationSettings(settings);
+      toast.success("Configurações de notificação atualizadas com sucesso");
+    } catch (error) {
+      toast.error("Erro ao salvar configurações de notificação");
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -104,9 +127,9 @@ const NotificationSettingsPage = () => {
                           Notifique quando alguém comentar em seus posts
                         </p>
                       </div>
-                      <Switch
-                        checked={settings.comments}
-                        onCheckedChange={() => handleSettingChange('comments')}
+                  <Switch
+                    checked={settings.newComments}
+                    onCheckedChange={() => handleSettingChange('newComments')}
                       />
                     </div>
 
@@ -150,8 +173,8 @@ const NotificationSettingsPage = () => {
                         </p>
                       </div>
                       <Switch
-                        checked={settings.weeklyDigest}
-                        onCheckedChange={() => handleSettingChange('weeklyDigest')}
+                        checked={settings.newsletter}
+                        onCheckedChange={() => handleSettingChange('newsletter')}
                       />
                     </div>
 
@@ -163,8 +186,8 @@ const NotificationSettingsPage = () => {
                         </p>
                       </div>
                       <Switch
-                        checked={settings.fishingReminders}
-                        onCheckedChange={() => handleSettingChange('fishingReminders')}
+                        checked={settings.fishingTips}
+                        onCheckedChange={() => handleSettingChange('fishingTips')}
                       />
                     </div>
 
@@ -176,8 +199,8 @@ const NotificationSettingsPage = () => {
                         </p>
                       </div>
                       <Switch
-                        checked={settings.weatherAlerts}
-                        onCheckedChange={() => handleSettingChange('weatherAlerts')}
+                        checked={settings.locationSuggestions}
+                        onCheckedChange={() => handleSettingChange('locationSuggestions')}
                       />
                     </div>
 
