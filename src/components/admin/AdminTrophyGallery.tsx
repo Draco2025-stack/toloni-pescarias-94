@@ -2,108 +2,59 @@
 import { useState, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Trophy, Crown, Fish, MapPin, Calendar, Weight, RefreshCw, Eye, Archive } from "lucide-react";
-import toloniLogoMain from "@/assets/toloni-logo-main.png";
-import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import FileUpload from "@/components/ui/file-upload";
-import { getCurrentMonthTrophies, updateTrophyRanking, getTrophiesByMonth } from "@/services/mockData";
+import { Trophy, RefreshCw, Calendar, Fish, MapPin, Weight } from "lucide-react";
+import { getCurrentMonthTrophies, getTrophiesByMonth, updateTrophyRanking, Trophy as TrophyType } from "@/services/trophyService";
+import { toast } from "sonner";
 
-interface TrophyEntry {
-  id: string;
-  fishermanName: string;
-  fishType: string;
-  location: string;
-  imageUrl: string;
-  weight?: string;
-  date: string;
-  position: number;
-}
 
 const AdminTrophyGallery = () => {
-  const { toast } = useToast();
-  const [trophyEntries, setTrophyEntries] = useState<TrophyEntry[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [trophies, setTrophies] = useState<TrophyType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
   const [updating, setUpdating] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
-  const [newEntry, setNewEntry] = useState({
-    fishermanName: '',
-    fishType: '',
-    location: '',
-    imageUrl: '',
-    weight: '',
-    date: '',
-    position: 1
-  });
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-
-  // Carregar troféus do mês atual ao inicializar
   useEffect(() => {
-    loadCurrentTrophies();
-  }, []);
+    loadTrophies();
+  }, [selectedMonth]);
 
-  const loadCurrentTrophies = async () => {
+  const loadTrophies = async () => {
     try {
       setLoading(true);
-      const trophies = await getCurrentMonthTrophies();
-      setTrophyEntries(trophies);
+      
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      let data;
+      
+      if (selectedMonth === currentMonth) {
+        data = await getCurrentMonthTrophies();
+      } else {
+        data = await getTrophiesByMonth(selectedMonth);
+      }
+      
+      setTrophies(data);
     } catch (error) {
       console.error('Erro ao carregar troféus:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar troféus atuais",
-        variant: "destructive"
-      });
+      toast.error('Erro ao carregar troféus');
     } finally {
       setLoading(false);
     }
   };
 
-  const loadTrophiesByMonth = async (month: string) => {
-    try {
-      setLoading(true);
-      const trophies = await getTrophiesByMonth(month);
-      setTrophyEntries(trophies);
-      setSelectedMonth(month);
-    } catch (error) {
-      console.error('Erro ao carregar troféus do mês:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar troféus do mês selecionado",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateRanking = async () => {
+  const handleUpdateRanking = async () => {
     try {
       setUpdating(true);
       const result = await updateTrophyRanking();
       
       if (result.success) {
-        toast({
-          title: "Sucesso",
-          description: `Ranking atualizado! ${result.updated_entries} troféus foram processados.`
-        });
-        await loadCurrentTrophies();
+        toast.success(`Ranking atualizado! ${result.updated_entries} troféus processados`);
+        loadTrophies(); // Recarregar troféus
       } else {
-        throw new Error(result.message);
+        toast.error(result.message || 'Erro ao atualizar ranking');
       }
     } catch (error) {
       console.error('Erro ao atualizar ranking:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao atualizar ranking automático",
-        variant: "destructive"
-      });
+      toast.error('Erro interno do servidor');
     } finally {
       setUpdating(false);
     }

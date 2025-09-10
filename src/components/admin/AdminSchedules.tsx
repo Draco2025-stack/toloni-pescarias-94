@@ -1,182 +1,141 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Clock, MapPin, Plus, Edit, Trash2, ChevronDown, ChevronUp, Upload } from "lucide-react";
+import { Calendar, Clock, MapPin, Plus, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-interface ScheduleDetails {
-  trajectory: string;
-  departure: string;
-  return: string;
-  boat: string;
-  equipment: string;
-  includes: string;
-  whatsapp: string;
-  media?: string;
-}
-
-interface Schedule {
-  id: number;
-  title: string;
-  location: string;
-  date: string;
-  time: string;
-  duration: string;
-  description: string;
-  maxParticipants: number;
-  
-  status: "ativo" | "cancelado" | "completo";
-  details: ScheduleDetails;
-}
+import { getSchedules, createSchedule, updateSchedule, deleteSchedule, FishingSchedule, CreateScheduleData } from "@/services/scheduleService";
+import { toast } from "sonner";
 
 const AdminSchedules = () => {
-  const [schedules, setSchedules] = useState<Schedule[]>([
-    {
-      id: 1,
-      title: "Pescaria de Tucunaré",
-      location: "Rio Negro, Amazonas",
-      date: "2024-02-15",
-      time: "05:00",
-      duration: "8 horas",
-      description: "Pescaria de tucunaré com equipamentos inclusos e almoço.",
-      maxParticipants: 6,
-      
-      status: "ativo",
-      details: {
-        trajectory: "Saída do Porto de Manaus → Rio Negro → Encontro das Águas → Pontos de pesca de tucunaré",
-        departure: "05:00 - Porto de Manaus",
-        return: "13:00 - Porto de Manaus",
-        boat: "Lancha equipada com motor 90HP, capacidade para 8 pessoas, banheiro, cobertura",
-        equipment: "Varas de pesca, molinetes, iscas artificiais, puçá, caixa térmica, coletes salva-vidas",
-        includes: "Café da manhã, almoço, água, refrigerantes, seguro",
-        whatsapp: "5511999999999",
-        media: ""
-      }
-    },
-    {
-      id: 2,
-      title: "Pescaria de Água Doce",
-      location: "Cabo Frio, RJ",
-      date: "2024-02-20",
-      time: "06:00",
-      duration: "12 horas",
-      description: "Pescaria em alto mar com foco em peixes grandes.",
-      maxParticipants: 8,
-      
-      status: "ativo",
-      details: {
-        trajectory: "Saída da Marina de Cabo Frio → Alto mar (15 milhas náuticas) → Pontos de pesca oceânica",
-        departure: "06:00 - Marina de Cabo Frio",
-        return: "18:00 - Marina de Cabo Frio",
-        boat: "Traineira oceânica 42 pés, GPS, sonar, radio VHF, banheiro, cozinha equipada",
-        equipment: "Varas oceânicas, molinetes Penn, iscas naturais, anzóis diversos, equipamentos de segurança",
-        includes: "Café da manhã, almoço, jantar, bebidas, combustível, seguro marítimo",
-        whatsapp: "5521888888888",
-        media: ""
-      }
-    }
-  ]);
-
+  const [schedules, setSchedules] = useState<FishingSchedule[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null);
-  const [expandedSchedule, setExpandedSchedule] = useState<number | null>(null);
+  const [editingSchedule, setEditingSchedule] = useState<FishingSchedule | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     location: "",
     date: "",
     time: "",
-    duration: "",
+    max_participants: "",
+    price: "",
     description: "",
-    maxParticipants: "",
-    status: "ativo" as "ativo" | "cancelado" | "completo",
-    details: {
-      trajectory: "",
-      departure: "",
-      return: "",
-      boat: "",
-      equipment: "",
-      includes: "",
-      whatsapp: "",
-      media: ""
-    }
+    image_url: ""
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    loadSchedules();
+  }, []);
+
+  const loadSchedules = async () => {
+    try {
+      setLoading(true);
+      const data = await getSchedules();
+      setSchedules(data);
+    } catch (error) {
+      console.error('Erro ao carregar cronogramas:', error);
+      toast.error('Erro ao carregar cronogramas');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (editingSchedule) {
-      setSchedules(schedules.map(schedule => 
-        schedule.id === editingSchedule.id 
-          ? { ...editingSchedule, ...formData, maxParticipants: Number(formData.maxParticipants) }
-          : schedule
-      ));
-      setEditingSchedule(null);
-    } else {
-      const newSchedule: Schedule = {
-        id: schedules.length + 1,
-        ...formData,
-        maxParticipants: Number(formData.maxParticipants)
+    try {
+      const scheduleData: CreateScheduleData = {
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        date: formData.date,
+        time: formData.time,
+        max_participants: formData.max_participants ? parseInt(formData.max_participants) : undefined,
+        price: formData.price ? parseFloat(formData.price) : undefined,
+        image_url: formData.image_url
       };
-      setSchedules([...schedules, newSchedule]);
+
+      if (editingSchedule) {
+        const result = await updateSchedule(editingSchedule.id, scheduleData);
+        if (result.success) {
+          toast.success('Cronograma atualizado com sucesso');
+          loadSchedules();
+        } else {
+          toast.error(result.message || 'Erro ao atualizar cronograma');
+        }
+      } else {
+        const result = await createSchedule(scheduleData);
+        if (result.success) {
+          toast.success('Cronograma criado com sucesso');
+          loadSchedules();
+        } else {
+          toast.error(result.message || 'Erro ao criar cronograma');
+        }
+      }
+      
+      resetForm();
+    } catch (error) {
+      console.error('Erro ao salvar cronograma:', error);
+      toast.error('Erro interno do servidor');
     }
-    
+  };
+
+  const resetForm = () => {
     setFormData({
       title: "",
       location: "",
       date: "",
       time: "",
-      duration: "",
+      max_participants: "",
+      price: "",
       description: "",
-      maxParticipants: "",
-      status: "ativo",
-      details: {
-        trajectory: "",
-        departure: "",
-        return: "",
-        boat: "",
-        equipment: "",
-        includes: "",
-        whatsapp: "",
-        media: ""
-      }
+      image_url: ""
     });
     setShowForm(false);
+    setEditingSchedule(null);
   };
 
-  const handleEdit = (schedule: Schedule) => {
+  const handleEdit = (schedule: FishingSchedule) => {
     setEditingSchedule(schedule);
     setFormData({
       title: schedule.title,
       location: schedule.location,
       date: schedule.date,
       time: schedule.time,
-      duration: schedule.duration,
+      max_participants: schedule.max_participants?.toString() || "",
+      price: schedule.price?.toString() || "",
       description: schedule.description,
-      maxParticipants: schedule.maxParticipants.toString(),
-      
-      status: schedule.status,
-      details: { ...schedule.details, media: schedule.details.media || "" }
+      image_url: schedule.image_url || ""
     });
     setShowForm(true);
   };
 
-  const handleDelete = (id: number) => {
-    setSchedules(schedules.filter(schedule => schedule.id !== id));
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ativo": return "bg-green-100 text-green-800";
-      case "cancelado": return "bg-red-100 text-red-800";
-      case "completo": return "bg-blue-100 text-blue-800";
-      default: return "bg-gray-100 text-gray-800";
+  const handleDelete = async (id: string) => {
+    if (confirm("Tem certeza que deseja remover este cronograma?")) {
+      try {
+        const result = await deleteSchedule(id);
+        if (result.success) {
+          toast.success('Cronograma removido com sucesso');
+          loadSchedules();
+        } else {
+          toast.error(result.message || 'Erro ao remover cronograma');
+        }
+      } catch (error) {
+        console.error('Erro ao deletar cronograma:', error);
+        toast.error('Erro interno do servidor');
+      }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-12">
+        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -194,272 +153,89 @@ const AdminSchedules = () => {
             <CardTitle>{editingSchedule ? "Editar" : "Nova"} Pescaria</CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Basic Information */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Informações Básicas</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="title">Título</Label>
-                    <Input
-                      id="title"
-                      value={formData.title}
-                      onChange={(e) => setFormData({...formData, title: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="location">Localização</Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => setFormData({...formData, location: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="date">Data</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({...formData, date: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="time">Horário</Label>
-                    <Input
-                      id="time"
-                      type="time"
-                      value={formData.time}
-                      onChange={(e) => setFormData({...formData, time: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="duration">Duração</Label>
-                    <Input
-                      id="duration"
-                      value={formData.duration}
-                      onChange={(e) => setFormData({...formData, duration: e.target.value})}
-                      placeholder="Ex: 8 horas"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="maxParticipants">Máx. Participantes</Label>
-                    <Input
-                      id="maxParticipants"
-                      type="number"
-                      value={formData.maxParticipants}
-                      onChange={(e) => setFormData({...formData, maxParticipants: e.target.value})}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="status">Status</Label>
-                    <Select value={formData.status} onValueChange={(value: "ativo" | "cancelado" | "completo") => setFormData({...formData, status: value})}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ativo">Ativo</SelectItem>
-                        <SelectItem value="cancelado">Cancelado</SelectItem>
-                        <SelectItem value="completo">Completo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
-                    rows={3}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="title">Título</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({...formData, title: e.target.value})}
                     required
                   />
                 </div>
-              </div>
-
-              {/* Detailed Information */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Detalhes da Pescaria</h3>
-                <div className="space-y-4">
-                  <div>
-                    <Label htmlFor="trajectory">Trajeto</Label>
-                    <Textarea
-                      id="trajectory"
-                      value={formData.details.trajectory}
-                      onChange={(e) => setFormData({
-                        ...formData, 
-                        details: {...formData.details, trajectory: e.target.value}
-                      })}
-                      placeholder="Descreva o trajeto da pescaria"
-                      rows={2}
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="departure">Horário e Local de Saída</Label>
-                      <Input
-                        id="departure"
-                        value={formData.details.departure}
-                        onChange={(e) => setFormData({
-                          ...formData, 
-                          details: {...formData.details, departure: e.target.value}
-                        })}
-                        placeholder="Ex: 05:00 - Porto de Manaus"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="return">Horário e Local de Retorno</Label>
-                      <Input
-                        id="return"
-                        value={formData.details.return}
-                        onChange={(e) => setFormData({
-                          ...formData, 
-                          details: {...formData.details, return: e.target.value}
-                        })}
-                        placeholder="Ex: 13:00 - Porto de Manaus"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="boat">Descrição da Embarcação</Label>
-                    <Textarea
-                      id="boat"
-                      value={formData.details.boat}
-                      onChange={(e) => setFormData({
-                        ...formData, 
-                        details: {...formData.details, boat: e.target.value}
-                      })}
-                      placeholder="Descreva a embarcação utilizada"
-                      rows={2}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="equipment">Equipamentos Inclusos</Label>
-                    <Textarea
-                      id="equipment"
-                      value={formData.details.equipment}
-                      onChange={(e) => setFormData({
-                        ...formData, 
-                        details: {...formData.details, equipment: e.target.value}
-                      })}
-                      placeholder="Liste os equipamentos inclusos"
-                      rows={2}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="includes">O que está Incluso</Label>
-                    <Textarea
-                      id="includes"
-                      value={formData.details.includes}
-                      onChange={(e) => setFormData({
-                        ...formData, 
-                        details: {...formData.details, includes: e.target.value}
-                      })}
-                      placeholder="Refeições, bebidas, seguro, etc."
-                      rows={2}
-                      required
-                    />
-                  </div>
-                   <div>
-                     <Label htmlFor="whatsapp">Número do WhatsApp (com código do país)</Label>
-                     <Input
-                       id="whatsapp"
-                       value={formData.details.whatsapp}
-                       onChange={(e) => setFormData({
-                         ...formData, 
-                         details: {...formData.details, whatsapp: e.target.value}
-                       })}
-                       placeholder="Ex: 5511999999999"
-                       required
-                     />
-                   </div>
-                   <div>
-                     <Label htmlFor="media">Imagem ou Vídeo da Pescaria</Label>
-                     <div className="space-y-2">
-                       <Input
-                         id="media"
-                         type="file"
-                         accept=".jpg,.jpeg,.png,.mp4"
-                         onChange={(e) => {
-                           const file = e.target.files?.[0];
-                           if (file) {
-                             if (file.size > 10 * 1024 * 1024) {
-                               alert('Arquivo deve ter no máximo 10MB');
-                               return;
-                             }
-                             const url = URL.createObjectURL(file);
-                             setFormData({
-                               ...formData,
-                               details: {...formData.details, media: url}
-                             });
-                           }
-                         }}
-                       />
-                       <p className="text-xs text-gray-500">
-                         Formatos aceitos: JPG, JPEG, PNG, MP4 (máx. 10MB)
-                       </p>
-                       {formData.details.media && (
-                         <div className="mt-2">
-                           {formData.details.media.endsWith('.mp4') ? (
-                             <video 
-                               src={formData.details.media} 
-                               className="w-32 h-20 object-cover rounded border"
-                               controls
-                             />
-                           ) : (
-                             <img 
-                               src={formData.details.media} 
-                               alt="Preview" 
-                               className="w-32 h-20 object-cover rounded border"
-                             />
-                           )}
-                         </div>
-                       )}
-                     </div>
-                   </div>
+                <div>
+                  <Label htmlFor="location">Localização</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData({...formData, location: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="date">Data</Label>
+                  <Input
+                    id="date"
+                    type="date"
+                    value={formData.date}
+                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="time">Horário</Label>
+                  <Input
+                    id="time"
+                    type="time"
+                    value={formData.time}
+                    onChange={(e) => setFormData({...formData, time: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="max_participants">Máx. Participantes</Label>
+                  <Input
+                    id="max_participants"
+                    type="number"
+                    value={formData.max_participants}
+                    onChange={(e) => setFormData({...formData, max_participants: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="price">Preço (R$)</Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    step="0.01"
+                    value={formData.price}
+                    onChange={(e) => setFormData({...formData, price: e.target.value})}
+                  />
                 </div>
               </div>
-
+              <div>
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  rows={3}
+                />
+              </div>
+              <div>
+                <Label htmlFor="image_url">URL da Imagem</Label>
+                <Input
+                  id="image_url"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({...formData, image_url: e.target.value})}
+                />
+              </div>
+              
               <div className="flex gap-2">
                 <Button type="submit">
                   {editingSchedule ? "Atualizar" : "Criar"} Pescaria
                 </Button>
-                <Button type="button" variant="outline" onClick={() => {
-                  setShowForm(false);
-                  setEditingSchedule(null);
-                  setFormData({
-                    title: "",
-                    location: "",
-                    date: "",
-                    time: "",
-                    duration: "",
-                    description: "",
-                    maxParticipants: "",
-                    
-                    status: "ativo",
-        details: {
-          trajectory: "",
-          departure: "",
-          return: "",
-          boat: "",
-          equipment: "",
-          includes: "",
-          whatsapp: "",
-          media: ""
-        }
-                  });
-                }}>
+                <Button type="button" variant="outline" onClick={resetForm}>
                   Cancelar
                 </Button>
               </div>
@@ -475,95 +251,47 @@ const AdminSchedules = () => {
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="text-lg font-semibold">{schedule.title}</h3>
-                  <div className="flex items-center gap-4 text-sm text-gray-600 mt-2">
-                    <div className="flex items-center gap-1">
-                      <MapPin className="h-4 w-4" />
-                      {schedule.location}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      {new Date(schedule.date).toLocaleDateString('pt-BR')}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      {schedule.time} ({schedule.duration})
-                    </div>
-                  </div>
+                  <p className="text-muted-foreground">{schedule.description}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge className={getStatusColor(schedule.status)}>
-                    {schedule.status}
-                  </Badge>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setExpandedSchedule(expandedSchedule === schedule.id ? null : schedule.id)}
-                  >
-                    {expandedSchedule === schedule.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleEdit(schedule)}>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => handleEdit(schedule)}>
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => handleDelete(schedule.id)}>
+                  <Button size="sm" variant="destructive" onClick={() => handleDelete(schedule.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
               
-               <p className="text-gray-700 mb-3">{schedule.description}</p>
-               
-               {schedule.details.media && (
-                 <div className="mb-4">
-                   {schedule.details.media.endsWith('.mp4') ? (
-                     <video 
-                       src={schedule.details.media} 
-                       className="w-full max-w-md h-48 object-cover rounded-lg"
-                       controls
-                     />
-                   ) : (
-                     <img 
-                       src={schedule.details.media} 
-                       alt={schedule.title} 
-                       className="w-full max-w-md h-48 object-cover rounded-lg"
-                     />
-                   )}
-                 </div>
-               )}
-              
-              {expandedSchedule === schedule.id && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="grid md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <strong>Trajeto:</strong> {schedule.details.trajectory}
-                    </div>
-                    <div>
-                      <strong>WhatsApp:</strong> {schedule.details.whatsapp}
-                    </div>
-                    <div>
-                      <strong>Saída:</strong> {schedule.details.departure}
-                    </div>
-                    <div>
-                      <strong>Retorno:</strong> {schedule.details.return}
-                    </div>
-                    <div className="md:col-span-2">
-                      <strong>Embarcação:</strong> {schedule.details.boat}
-                    </div>
-                    <div className="md:col-span-2">
-                      <strong>Equipamentos:</strong> {schedule.details.equipment}
-                    </div>
-                    <div className="md:col-span-2">
-                      <strong>Incluso:</strong> {schedule.details.includes}
-                    </div>
-                  </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  {schedule.location}
                 </div>
-              )}
-              
-              <div className="flex justify-between items-center text-sm mt-4">
-                <span>Máx. {schedule.maxParticipants} participantes</span>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  {new Date(schedule.date).toLocaleDateString('pt-BR')}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  {schedule.time}
+                </div>
+                {schedule.price && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">R$</span>
+                    {schedule.price.toFixed(2)}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         ))}
+        
+        {schedules.length === 0 && !loading && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Nenhum cronograma cadastrado</p>
+          </div>
+        )}
       </div>
     </div>
   );

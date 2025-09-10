@@ -11,6 +11,7 @@ export interface AdminStats {
   pending_reports: number;
   pending_locations: number;
   recent_activity: ActivityItem[];
+  growth_stats: { month: string; users: number; reports: number; }[];
 }
 
 export interface ActivityItem {
@@ -69,7 +70,7 @@ export interface AdminComment {
 // Get dashboard statistics
 export const getAdminStats = async (): Promise<AdminStats> => {
   try {
-    const response = await fetch(`${API_BASE}/api/admin/index.php?action=stats`, {
+    const response = await fetch(`${API_BASE}/api/admin/dashboard.php?action=stats`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -87,6 +88,30 @@ export const getAdminStats = async (): Promise<AdminStats> => {
   } catch (error) {
     console.error('Erro ao buscar estatísticas admin:', error);
     throw error;
+  }
+};
+
+// Get recent activity
+export const getRecentActivity = async (): Promise<ActivityItem[]> => {
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/dashboard.php?action=activity`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    
+    if (!data.success) {
+      throw new Error(data.message || 'Erro ao buscar atividades');
+    }
+
+    return data.activities || [];
+  } catch (error) {
+    console.error('Erro ao buscar atividades:', error);
+    return [];
   }
 };
 
