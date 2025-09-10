@@ -30,7 +30,7 @@ const CreateReportPage = () => {
   // Form states
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [locationId, setLocationId] = useState("");
+  const [location, setLocation] = useState("");
   const [fishSpecies, setFishSpecies] = useState("");
   const [fishWeight, setFishWeight] = useState("");
   const [isPublic, setIsPublic] = useState(true);
@@ -42,7 +42,7 @@ const CreateReportPage = () => {
   const [errors, setErrors] = useState<{
     title?: string;
     content?: string;
-    locationId?: string;
+    location?: string;
     fishSpecies?: string;
     images?: string;
   }>({});
@@ -66,7 +66,7 @@ const CreateReportPage = () => {
     
     if (!title.trim()) newErrors.title = "Título é obrigatório";
     if (!content.trim()) newErrors.content = "Conteúdo é obrigatório";
-    if (!locationId) newErrors.locationId = "Selecione uma localidade";
+    if (!location.trim()) newErrors.location = "Localidade é obrigatória";
     if (!fishSpecies.trim()) newErrors.fishSpecies = "Espécie do peixe é obrigatória";
     if (images.length === 0) newErrors.images = "Adicione pelo menos uma imagem";
     
@@ -161,7 +161,7 @@ const CreateReportPage = () => {
       const reportData = {
         report_id: reportId,
         fish_species: fishSpecies,
-        location: locations.find(loc => loc.id === locationId)?.name || '',
+        location: location,
         images: images.map(img => img.preview),
         is_public: isPublic,
         approved: user?.isAdmin ? approved : false
@@ -204,19 +204,14 @@ const CreateReportPage = () => {
 
             <div className="space-y-2">
               <Label htmlFor="location">Localidade <span className="text-red-500">*</span></Label>
-              <Select value={locationId} onValueChange={setLocationId}>
-                <SelectTrigger id="location" className={errors.locationId ? "border-red-500" : ""}>
-                  <SelectValue placeholder="Selecione a localidade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.map((location) => (
-                    <SelectItem key={location.id} value={location.id}>
-                      {location.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.locationId && <p className="text-red-500 text-sm">{errors.locationId}</p>}
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Digite a localidade da pesca"
+                className={errors.location ? "border-red-500" : ""}
+              />
+              {errors.location && <p className="text-red-500 text-sm">{errors.location}</p>}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
