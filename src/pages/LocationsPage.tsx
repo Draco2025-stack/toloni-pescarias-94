@@ -6,7 +6,7 @@ import LocationCard from "@/components/common/LocationCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, MapPin } from "lucide-react";
-import { getLocations, Location } from "@/services/mockData";
+import { getLocations, Location } from "@/services/locationService";
 import { useAuth } from "@/contexts/AuthContext";
 
 const LocationsPage = () => {

@@ -5,7 +5,7 @@ import PageHeader from "@/components/common/PageHeader";
 import ReportCard from "@/components/common/ReportCard";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { getReportsByUser } from "@/services/mockData";
+import { getReportsByUser } from "@/services/reportService";
 import { useAuth } from "@/contexts/AuthContext";
 
 const MyReportsPage = () => {

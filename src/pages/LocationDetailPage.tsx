@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ReportCard from "@/components/common/ReportCard";
 import { MapPin, Fish, Clock, Users, Calendar, MessageCircle } from "lucide-react";
-import { getLocation, getReportsByLocation, Location, Report } from "@/services/mockData";
+import { getLocation, Location } from "@/services/locationService";
+import { getReportsByLocation, Report } from "@/services/reportService";
 
 interface ExtendedLocation extends Location {
   especies?: string;

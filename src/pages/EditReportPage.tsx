@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/select";
 import { X, Upload, Camera, Video } from "lucide-react";
 import { toast } from "sonner";
-import { getLocations, getReport, Location } from "@/services/mockData";
+import { getReport, updateReport, Report } from "@/services/reportService";
+import { getLocations, Location } from "@/services/locationService";
 import { useTrophyWebhook } from "@/services/trophyWebhook";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -184,24 +185,45 @@ const EditReportPage = () => {
     setIsSubmitting(true);
     
     try {
-      // Prepare webhook data
+      // Prepare report data
       const reportData = {
-        report_id: id || '',
+        title,
+        content,
+        location: locations.find(loc => loc.id === locationId)?.name || "",
         fish_species: fishSpecies,
-        location: locations.find(loc => loc.id === locationId)?.name || '',
-        images: images.map(img => img.preview),
+        fish_weight: fishWeight || undefined,
         is_public: isPublic,
         approved: user?.isAdmin ? approved : false
       };
       
-      // Notify trophy webhook
-      await notifyReportUpdated(reportData);
+      // Update report using the API service
+      const result = await updateReport(id || '', reportData);
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Erro ao atualizar relatório');
+      }
+      
+      // Try to notify webhook, but don't fail if it doesn't work
+      try {
+        const webhookData = {
+          report_id: id || '',
+          fish_species: fishSpecies,
+          location: locations.find(loc => loc.id === locationId)?.name || '',
+          images: images.map(img => img.preview),
+          is_public: isPublic,
+          approved: user?.isAdmin ? approved : false
+        };
+        
+        await notifyReportUpdated(webhookData);
+      } catch (webhookError) {
+        console.warn('Webhook notification failed:', webhookError);
+      }
       
       toast.success("Relato atualizado com sucesso!");
       navigate(`/reports/${id}`);
     } catch (error) {
       console.error("Error updating report:", error);
-      toast.error("Erro ao atualizar relato");
+      toast.error(error instanceof Error ? error.message : "Erro ao atualizar relato");
     } finally {
       setIsSubmitting(false);
     }

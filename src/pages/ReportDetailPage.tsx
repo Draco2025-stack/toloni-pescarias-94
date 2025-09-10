@@ -30,7 +30,8 @@ import {
 import CommentForm from "@/components/common/CommentForm";
 import CommentsList from "@/components/common/CommentsList";
 import { MapPin, Calendar, MoreVertical, Edit, Trash2 } from "lucide-react";
-import { getReport, formatDate } from "@/services/mockData";
+import { getReport, deleteReport, Report } from "@/services/reportService";
+import { formatDate } from "@/services/mockData";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -63,12 +64,22 @@ const ReportDetailPage = () => {
     fetchReport();
   }, [id]);
 
-  const handleDelete = () => {
-    // In a real app, this would be an API call
-    setTimeout(() => {
+  const handleDelete = async () => {
+    if (!id) return;
+    
+    try {
+      const result = await deleteReport(id);
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Erro ao excluir relatório');
+      }
+      
       toast.success("Relato excluído com sucesso");
       navigate("/reports");
-    }, 500);
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao excluir relato");
+    }
   };
 
   const getInitials = (name: string) => {

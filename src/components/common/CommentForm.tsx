@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { createComment } from "@/services/commentService";
 
 interface CommentFormProps {
   reportId: string;
@@ -15,7 +16,7 @@ const CommentForm = ({ reportId, onCommentAdded }: CommentFormProps) => {
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!content.trim()) {
@@ -25,13 +26,25 @@ const CommentForm = ({ reportId, onCommentAdded }: CommentFormProps) => {
     
     setIsSubmitting(true);
     
-    // In a real app, this would be an API call
-    setTimeout(() => {
+    try {
+      const result = await createComment({
+        report_id: reportId,
+        content: content.trim()
+      });
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Erro ao criar comentário');
+      }
+      
       toast.success("Comentário adicionado com sucesso");
       setContent("");
-      setIsSubmitting(false);
       onCommentAdded();
-    }, 500);
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao adicionar comentário");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!user) {

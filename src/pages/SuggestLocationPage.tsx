@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { MapPin, Camera, Info, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import FileUpload from "@/components/ui/file-upload";
+import { createLocation, CreateLocationData } from "@/services/locationService";
 
 const SuggestLocationPage = () => {
   const { user } = useAuth();
@@ -46,27 +47,49 @@ const SuggestLocationPage = () => {
     
     setIsSubmitting(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast({
-      title: "Localidade sugerida com sucesso!",
-      description: "Nossa equipe irá revisar e adicionar em breve.",
-      variant: "default",
-    });
-    
-    setFormData({
-      name: "",
-      state: "",
-      city: "",
-      description: "",
-      contact: "",
-      features: "",
-      imageUrl: "",
-    });
-    setSelectedImage(null);
-    
-    setIsSubmitting(false);
+    try {
+      const locationData: CreateLocationData = {
+        name: formData.name,
+        description: formData.description,
+        address: `${formData.city}, ${formData.state}`,
+        whatsapp: formData.contact,
+        facilities: formData.features ? formData.features.split(',').map(f => f.trim()) : [],
+        image: selectedImage || undefined,
+      };
+      
+      const result = await createLocation(locationData);
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Erro ao sugerir localidade');
+      }
+      
+      toast({
+        title: "Localidade sugerida com sucesso!",
+        description: "Nossa equipe irá revisar e adicionar em breve.",
+      });
+      
+      setFormData({
+        name: "",
+        state: "",
+        city: "",
+        description: "",
+        contact: "",
+        features: "",
+        imageUrl: "",
+      });
+      setSelectedImage(null);
+      
+      navigate("/locations");
+    } catch (error) {
+      console.error("Error creating location:", error);
+      toast({
+        title: "Erro",
+        description: error instanceof Error ? error.message : "Erro ao sugerir localidade",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

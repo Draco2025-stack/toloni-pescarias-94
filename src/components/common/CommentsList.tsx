@@ -23,7 +23,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { getCommentsByReport, Comment, formatDate } from "@/services/mockData";
+import { getCommentsByReport, deleteComment, Comment } from "@/services/commentService";
+import { formatDate } from "@/services/mockData";
 
 interface CommentsListProps {
   reportId: string;
@@ -34,7 +35,7 @@ const CommentsList = ({ reportId, refreshTrigger = 0 }: CommentsListProps) => {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [deleteComment, setDeleteComment] = useState<string | null>(null);
+  const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
 
   const fetchComments = async () => {
     setIsLoading(true);
@@ -53,13 +54,21 @@ const CommentsList = ({ reportId, refreshTrigger = 0 }: CommentsListProps) => {
     fetchComments();
   }, [reportId, refreshTrigger]);
 
-  const handleDelete = (commentId: string) => {
-    // In a real app, this would be an API call
-    setTimeout(() => {
+  const handleDelete = async (commentId: string) => {
+    try {
+      const result = await deleteComment(commentId);
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Erro ao excluir comentário');
+      }
+      
       setComments((prev) => prev.filter((c) => c.id !== commentId));
       toast.success("Comentário removido com sucesso");
-      setDeleteComment(null);
-    }, 500);
+      setDeletingCommentId(null);
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao remover comentário");
+    }
   };
 
   const getInitials = (name: string) => {

@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Search, Filter, Plus } from "lucide-react";
-import { getAllReports, getLocations, Report, Location } from "@/services/mockData";
+import { getAllReports, Report } from "@/services/reportService";
+import { getLocations, Location } from "@/services/locationService";
 import { useAuth } from "@/contexts/AuthContext";
 
 const ReportsPage = () => {

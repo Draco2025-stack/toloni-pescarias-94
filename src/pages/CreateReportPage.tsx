@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/select";
 import { X, Upload, Camera, Video } from "lucide-react";
 import { toast } from "sonner";
-import { getLocations, Location } from "@/services/mockData";
+import { getLocations, Location } from "@/services/locationService";
+import { createReport, CreateReportData } from "@/services/reportService";
 import { useTrophyWebhook } from "@/services/trophyWebhook";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -154,27 +155,50 @@ const CreateReportPage = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate report creation and get report ID
-      const reportId = Date.now().toString();
-      
-      // Prepare webhook data
-      const reportData = {
-        report_id: reportId,
+      // Prepare report data
+      const reportData: CreateReportData = {
+        title,
+        content,
+        location,
         fish_species: fishSpecies,
-        location: location,
-        images: images.map(img => img.preview),
+        fish_weight: fishWeight || undefined,
         is_public: isPublic,
-        approved: user?.isAdmin ? approved : false
+        approved: user?.isAdmin ? approved : false,
+        images: images.map(img => img.file!).filter(Boolean),
+        video: video?.file || undefined
       };
       
-      // Notify trophy webhook
-      await notifyReportCreated(reportData);
+      // Create report using the API service
+      const result = await createReport(reportData);
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Erro ao criar relatório');
+      }
+      
+      // Notify trophy webhook if report was created successfully
+      if (result.reportId) {
+        const webhookData = {
+          report_id: result.reportId,
+          fish_species: fishSpecies,
+          location: location,
+          images: images.map(img => img.preview),
+          is_public: isPublic,
+          approved: user?.isAdmin ? approved : false
+        };
+        
+        // Try to notify webhook, but don't fail if it doesn't work
+        try {
+          await notifyReportCreated(webhookData);
+        } catch (webhookError) {
+          console.warn('Webhook notification failed:', webhookError);
+        }
+      }
       
       toast.success("Relato criado com sucesso!");
       navigate("/reports");
     } catch (error) {
       console.error("Error creating report:", error);
-      toast.error("Erro ao criar relato");
+      toast.error(error instanceof Error ? error.message : "Erro ao criar relato");
     } finally {
       setIsSubmitting(false);
     }
