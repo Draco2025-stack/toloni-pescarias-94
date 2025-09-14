@@ -8,8 +8,22 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Security Headers
+# Security Headers & CORS
 <IfModule mod_headers.c>
+    # CORS Headers - Configuração dinâmica para desenvolvimento e produção
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Access-Control-Allow-Credentials "true"
+    Header always set Access-Control-Max-Age "86400"
+    
+    # Configurar Access-Control-Allow-Origin dinamicamente
+    SetEnvIf Origin "^https?://(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|.*\.lovable\.)" IS_DEV_ORIGIN=1
+    SetEnvIf Origin "^https://(www\.)?tolonipescarias\.com\.br$" IS_PROD_ORIGIN=1
+    
+    Header always set Access-Control-Allow-Origin "%{HTTP_ORIGIN}e" env=IS_DEV_ORIGIN
+    Header always set Access-Control-Allow-Origin "%{HTTP_ORIGIN}e" env=IS_PROD_ORIGIN
+    Header always set Access-Control-Allow-Origin "https://tolonipescarias.com.br" env=!IS_DEV_ORIGIN:!IS_PROD_ORIGIN
+    
     # Prevent MIME type sniffing
     Header always set X-Content-Type-Options nosniff
     
@@ -41,6 +55,10 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 # Hide server signature
 ServerTokens Prod
 ServerSignature Off
+
+# Tratar requisições OPTIONS globalmente para CORS
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=204,L]
 
 # URLs amigáveis
 RewriteRule ^location/([0-9]+)/?$ pages/location_detail.php?id=$1 [L,QSA]

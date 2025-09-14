@@ -1,23 +1,5 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
-
-// Configurar CORS dinamicamente baseado no ambiente
-$allowedOrigins = [
-    'https://tolonipescarias.com.br',
-    'http://localhost:8080',
-    'https://localhost:8080'
-];
-
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins) || strpos($origin, 'lovable') !== false) {
-    header("Access-Control-Allow-Origin: $origin");
-} else {
-    header('Access-Control-Allow-Origin: *');
-}
-
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Access-Control-Allow-Credentials: true');
+require_once '../../config/cors_config.php';
 
 // Garantir que não há saída antes do JSON
 ob_start();
