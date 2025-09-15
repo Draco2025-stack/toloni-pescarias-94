@@ -4,6 +4,7 @@
 
 require_once '../config/database.php';
 require_once '../config/hostinger_production.php';
+require_once '../config/security.php';
 
 try {
     $startTime = microtime(true);

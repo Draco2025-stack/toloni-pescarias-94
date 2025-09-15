@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // Verificar se é admin
-if (!checkAdminAuth()) {
+if (!checkAdminAuth($pdo)) {
     http_response_code(401);
     echo json_encode(['success' => false, 'message' => 'Acesso negado']);
     exit;
@@ -24,16 +24,16 @@ try {
     
     switch ($method) {
         case 'GET':
-            getCarousels();
+            getCarousels($pdo);
             break;
         case 'POST':
-            createCarousel();
+            createCarousel($pdo);
             break;
         case 'PUT':
-            updateCarousel();
+            updateCarousel($pdo);
             break;
         case 'DELETE':
-            deleteCarousel();
+            deleteCarousel($pdo);
             break;
         default:
             throw new Exception('Método não permitido');
@@ -47,8 +47,7 @@ try {
     ]);
 }
 
-function getCarousels() {
-    global $pdo;
+function getCarousels($pdo) {
     
     $type = $_GET['type'] ?? 'hero'; // hero, experience
     
@@ -71,8 +70,7 @@ function getCarousels() {
     ]);
 }
 
-function createCarousel() {
-    global $pdo;
+function createCarousel($pdo) {
     
     $input = json_decode(file_get_contents('php://input'), true);
     
@@ -108,8 +106,7 @@ function createCarousel() {
     ]);
 }
 
-function updateCarousel() {
-    global $pdo;
+function updateCarousel($pdo) {
     
     $input = json_decode(file_get_contents('php://input'), true);
     
@@ -143,8 +140,7 @@ function updateCarousel() {
     ]);
 }
 
-function deleteCarousel() {
-    global $pdo;
+function deleteCarousel($pdo) {
     
     $input = json_decode(file_get_contents('php://input'), true);
     $id = $input['id'] ?? '';
@@ -163,8 +159,7 @@ function deleteCarousel() {
     ]);
 }
 
-function checkAdminAuth() {
-    global $pdo;
+function checkAdminAuth($pdo) {
     
     if (!isset($_COOKIE['user_session'])) {
         return false;

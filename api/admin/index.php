@@ -439,6 +439,78 @@ function createCarousel($pdo) {
     }
 }
 
+function updateCarousel($pdo) {
+    try {
+        global $user;
+        
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$input || !isset($input['id'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID é obrigatório']);
+            return;
+        }
+        
+        $id = (int)$input['id'];
+        $title = trim($input['title'] ?? '');
+        $subtitle = trim($input['subtitle'] ?? '');
+        $image = trim($input['image'] ?? '');
+        $link_url = trim($input['link_url'] ?? '');
+        $link_text = trim($input['link_text'] ?? '');
+        $position_order = (int)($input['position_order'] ?? 0);
+        $is_active = isset($input['is_active']) ? (bool)$input['is_active'] : true;
+        
+        if (empty($title) || empty($image)) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'Título e imagem são obrigatórios']);
+            return;
+        }
+        
+        $stmt = $pdo->prepare("
+            UPDATE carousels 
+            SET title = ?, subtitle = ?, image = ?, link_url = ?, link_text = ?, position_order = ?, is_active = ?
+            WHERE id = ?
+        ");
+        
+        $stmt->execute([$title, $subtitle, $image, $link_url, $link_text, $position_order, $is_active, $id]);
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Carousel atualizado com sucesso'
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Update carousel error: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+function deleteCarousel($pdo) {
+    try {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$input || !isset($input['id'])) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'message' => 'ID é obrigatório']);
+            return;
+        }
+        
+        $id = (int)$input['id'];
+        
+        $stmt = $pdo->prepare("DELETE FROM carousels WHERE id = ?");
+        $stmt->execute([$id]);
+        
+        echo json_encode([
+            'success' => true,
+            'message' => 'Carousel removido com sucesso'
+        ]);
+        
+    } catch (Exception $e) {
+        error_log("Delete carousel error: " . $e->getMessage());
+        throw $e;
+    }
+}
+
 function getSecurityLogs($pdo) {
     try {
         $limit = min((int)($_GET['limit'] ?? 50), 200);
