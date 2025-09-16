@@ -4,6 +4,38 @@ require_once '../../config/cors_config.php';
 require_once '../../config/database.php';
 require_once '../../config/security.php';
 
+// Função para notificar webhook de troféus
+function notifyTrophyWebhook($action, $reportData) {
+    try {
+        $webhookUrl = '/api/trophy_webhook.php';
+        $postData = json_encode([
+            'action' => $action,
+            ...$reportData
+        ]);
+        
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $_SERVER['HTTP_HOST'] . $webhookUrl);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, $postData);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 5); // Timeout rápido para não travar
+        
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        
+        if ($httpCode === 200) {
+            error_log("Trophy webhook success: $action");
+        } else {
+            error_log("Trophy webhook failed: $action (HTTP: $httpCode)");
+        }
+        
+    } catch (Exception $e) {
+        error_log("Trophy webhook error: " . $e->getMessage());
+    }
+}
+
 try {
     $method = $_SERVER['REQUEST_METHOD'];
     $path = $_GET['path'] ?? '';
@@ -246,6 +278,19 @@ function createReport($pdo) {
         // Log de segurança
         logSecurityEvent($pdo, $user['id'], 'REPORT_CREATED', "Report ID: $report_id");
         
+        // Notificar webhook de troféus (assíncrono)
+        if ($fish_species && $is_public) {
+            notifyTrophyWebhook('report_created', [
+                'report_id' => $report_id,
+                'fish_species' => $fish_species,
+                'location' => $custom_location ?: ($location_id ? "location_$location_id" : ''),
+                'images' => $images,
+                'fish_weight' => $fish_weight,
+                'is_public' => $is_public,
+                'approved' => true // Novos relatos são aprovados por padrão
+            ]);
+        }
+        
         echo json_encode([
             'success' => true,
             'message' => 'Relatório criado com sucesso',
@@ -359,6 +404,27 @@ function updateReport($pdo, $id) {
         // Log de segurança
         logSecurityEvent($pdo, $user['id'], 'REPORT_UPDATED', "Report ID: $id");
         
+        // Buscar dados atualizados do relatório para webhook
+        $stmt = $pdo->prepare("
+            SELECT fish_species, custom_location, location_id, images, fish_weight, is_public, approved
+            FROM reports WHERE id = ?
+        ");
+        $stmt->execute([$id]);
+        $reportData = $stmt->fetch();
+        
+        // Notificar webhook de troféus (assíncrono)
+        if ($reportData && $reportData['fish_species'] && $reportData['is_public']) {
+            notifyTrophyWebhook('report_updated', [
+                'report_id' => $id,
+                'fish_species' => $reportData['fish_species'],
+                'location' => $reportData['custom_location'] ?: ($reportData['location_id'] ? "location_{$reportData['location_id']}" : ''),
+                'images' => json_decode($reportData['images'] ?? '[]', true),
+                'fish_weight' => $reportData['fish_weight'],
+                'is_public' => (bool)$reportData['is_public'],
+                'approved' => (bool)$reportData['approved']
+            ]);
+        }
+        
         echo json_encode([
             'success' => true,
             'message' => 'Relatório atualizado com sucesso'
@@ -400,6 +466,11 @@ function deleteReport($pdo, $id) {
         // Excluir relatório
         $stmt = $pdo->prepare("DELETE FROM reports WHERE id = ?");
         $stmt->execute([$id]);
+        
+        // Notificar webhook de troféus antes de deletar
+        notifyTrophyWebhook('report_deleted', [
+            'report_id' => $id
+        ]);
         
         // Log de segurança
         logSecurityEvent($pdo, $user['id'], 'REPORT_DELETED', "Report ID: $id");

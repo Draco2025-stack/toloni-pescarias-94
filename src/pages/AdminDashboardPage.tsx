@@ -12,7 +12,7 @@ import AdminComments from "../components/admin/AdminComments";
 import AdminUsers from "../components/admin/AdminUsers";
 import AdminSchedules from "../components/admin/AdminSchedules";
 import AdminCarousels from "../components/admin/AdminCarousels";
-import AdminTrophyGallery from "../components/admin/AdminTrophyGallery";
+import AdminTrophyRanking from "../components/admin/AdminTrophyRanking";
 import AdminFishingReminder from "../components/admin/AdminFishingReminder";
 
 const AdminDashboardPage = () => {
@@ -51,7 +51,7 @@ const AdminDashboardPage = () => {
       case "users": return <AdminUsers />;
       case "schedules": return <AdminSchedules />;
       case "carousels": return <AdminCarousels />;
-      case "trophies": return <AdminTrophyGallery />;
+      case "trophies": return <AdminTrophyRanking />;
       case "reminders": return <AdminFishingReminder />;
       default: return <AdminDashboard />;
     }
@@ -122,7 +122,7 @@ const AdminDashboardPage = () => {
                 <AdminCarousels />
               </TabsContent>
               <TabsContent value="trophies">
-                <AdminTrophyGallery />
+                <AdminTrophyRanking />
               </TabsContent>
               <TabsContent value="reminders">
                 <AdminFishingReminder />
@@ -188,7 +188,7 @@ const AdminDashboardPage = () => {
                   icon={<Trophy className="h-5 w-5" />}
                   isActive={location.pathname === "/admin/trophies"}
                 >
-                  Troféus
+                  Sistema de Troféus
                 </AdminNavLink>
                 <AdminNavLink 
                   to="/admin/reminders" 
