@@ -28,10 +28,10 @@ export const getCurrentMonthTrophies = async (): Promise<Trophy[]> => {
     const data = await response.json();
     
     if (!data.success) {
-      throw new Error(data.message || 'Erro ao buscar troféus');
+      throw new Error(data.error?.message || 'Erro ao buscar troféus');
     }
 
-    return data.trophies || [];
+    return data.data?.trophies || data.trophies || [];
   } catch (error) {
     console.error('Erro ao buscar troféus:', error);
     return [];
@@ -52,10 +52,10 @@ export const getTrophiesByMonth = async (month: string): Promise<Trophy[]> => {
     const data = await response.json();
     
     if (!data.success) {
-      throw new Error(data.message || 'Erro ao buscar troféus');
+      throw new Error(data.error?.message || 'Erro ao buscar troféus');
     }
 
-    return data.trophies || [];
+    return data.data?.trophies || data.trophies || [];
   } catch (error) {
     console.error('Erro ao buscar troféus:', error);
     return [];
@@ -77,8 +77,8 @@ export const updateTrophyRanking = async (): Promise<{ success: boolean; message
     
     return {
       success: data.success,
-      message: data.message,
-      updated_entries: data.updated_entries
+      message: data.error?.message || data.message,
+      updated_entries: data.data?.updated_entries || data.updated_entries
     };
   } catch (error) {
     console.error('Erro ao atualizar ranking:', error);

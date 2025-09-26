@@ -28,10 +28,10 @@ export interface CreateScheduleData {
   image_url?: string;
 }
 
-// Get all schedules
+// Get all public schedules
 export const getSchedules = async (): Promise<FishingSchedule[]> => {
   try {
-    const response = await fetch(`${API_BASE}/api/admin/schedules.php`, {
+    const response = await fetch(`${API_BASE}/api/schedules.php`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -42,10 +42,10 @@ export const getSchedules = async (): Promise<FishingSchedule[]> => {
     const data = await response.json();
     
     if (!data.success) {
-      throw new Error(data.message || 'Erro ao buscar cronogramas');
+      throw new Error(data.error?.message || 'Erro ao buscar cronogramas');
     }
 
-    return data.schedules || [];
+    return data.data?.schedules || [];
   } catch (error) {
     console.error('Erro ao buscar cronogramas:', error);
     return [];

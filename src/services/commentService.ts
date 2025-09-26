@@ -35,10 +35,10 @@ export const getCommentsByReport = async (reportId: string): Promise<Comment[]> 
     const data = await response.json();
     
     if (!data.success) {
-      throw new Error(data.message || 'Erro ao buscar comentários');
+      throw new Error(data.error?.message || 'Erro ao buscar comentários');
     }
 
-    return data.comments || [];
+    return data.data?.comments || [];
   } catch (error) {
     console.error('Erro ao buscar comentários:', error);
     return [];
@@ -61,8 +61,8 @@ export const createComment = async (commentData: CreateCommentData): Promise<{ s
     
     return {
       success: data.success,
-      commentId: data.comment_id,
-      message: data.message
+      commentId: data.data?.comment_id,
+      message: data.error?.message || data.message
     };
   } catch (error) {
     console.error('Erro ao criar comentário:', error);
@@ -156,18 +156,18 @@ export const getComment = async (id: string): Promise<Comment | null> => {
   }
 };
 
-// Toggle comment like
-export const toggleCommentLike = async (id: string): Promise<{ success: boolean; liked: boolean; likes_count: number }> => {
+// Toggle comment or report like
+export const toggleLike = async (targetType: 'comment' | 'report', targetId: string): Promise<{ success: boolean; liked: boolean; likes_count: number }> => {
   try {
-    const response = await fetch(`${API_BASE}/api/comments/index.php`, {
+    const response = await fetch(`${API_BASE}/api/comments/index.php?path=like`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        action: 'toggle_like',
-        comment_id: parseInt(id)
+        target_type: targetType,
+        target_id: parseInt(targetId)
       }),
     });
 
@@ -175,11 +175,11 @@ export const toggleCommentLike = async (id: string): Promise<{ success: boolean;
     
     return {
       success: data.success,
-      liked: data.liked || false,
-      likes_count: data.likes_count || 0
+      liked: data.data?.liked || data.liked || false,
+      likes_count: data.data?.likes_count || data.likes_count || 0
     };
   } catch (error) {
-    console.error('Erro ao curtir/descurtir comentário:', error);
+    console.error('Erro ao curtir/descurtir:', error);
     return {
       success: false,
       liked: false,
@@ -187,3 +187,6 @@ export const toggleCommentLike = async (id: string): Promise<{ success: boolean;
     };
   }
 };
+
+// Legacy function for backward compatibility
+export const toggleCommentLike = (id: string) => toggleLike('comment', id);

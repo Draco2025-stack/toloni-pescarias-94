@@ -38,10 +38,10 @@ export const getCarousels = async (type: 'hero' | 'experience' = 'hero'): Promis
     const data = await response.json();
     
     if (!data.success) {
-      throw new Error(data.message || 'Erro ao buscar carrosséis');
+      throw new Error(data.error?.message || 'Erro ao buscar carrosséis');
     }
 
-    return data.carousels || [];
+    return data.data?.carousels || [];
   } catch (error) {
     console.error('Erro ao buscar carrosséis:', error);
     return [];

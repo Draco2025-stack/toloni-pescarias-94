@@ -1,8 +1,12 @@
 <?php
-require_once '../config/cors_config.php';
+/**
+ * API Pública de Cronograma - Toloni Pescarias
+ * Segue padrão do prompt-mestre
+ */
 
-require_once '../config/database.php';
-require_once '../config/session_cookies.php';
+// Incluir configurações unificadas
+require_once '../config/database_hostinger.php';
+require_once '../config/cors_unified.php';
 
 try {
     // Usar a conexão PDO global já estabelecida em database.php
@@ -78,26 +82,18 @@ try {
             ];
         }
         
-        echo json_encode([
-            'success' => true,
+        sendJsonResponse(true, [
             'schedules' => $schedules,
-            'count' => count($schedules)
+            'total' => count($schedules)
         ]);
         
     } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Método não permitido'
-        ]);
+        sendError('METHOD_NOT_ALLOWED', 'Método não permitido', 405);
     }
     
 } catch (Exception $e) {
     error_log("Error in schedules API: " . $e->getMessage());
-    echo json_encode([
-        'success' => false,
-        'message' => 'Erro interno do servidor',
-        'error' => $e->getMessage()
-    ]);
+    sendError('INTERNAL_ERROR', 'Erro interno do servidor', 500);
 }
 
 // PDO connection closed automatically

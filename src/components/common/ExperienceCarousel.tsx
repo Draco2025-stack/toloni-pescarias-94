@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getCarousels, CarouselItem } from "@/services/carouselService";
 
 interface MediaItem {
   id: string;
@@ -11,60 +12,35 @@ interface MediaItem {
   alt?: string;
 }
 
-// Função para buscar os dados do localStorage (simulando o painel administrativo)
-const getAdminCarouselData = (): MediaItem[] => {
-  try {
-    const storedData = localStorage.getItem('adminMediaCarousel');
-    if (storedData) {
-      const parsedData = JSON.parse(storedData);
-      return parsedData.map((item: any) => ({
-        id: item.id,
-        url: item.url,
-        type: item.type,
-        title: item.alt || 'Experiência de Pesca',
-        alt: item.alt
-      }));
-    }
-  } catch (error) {
-    console.error('Erro ao carregar dados do carrossel:', error);
-  }
-  
-  // Sistema limpo - sem dados de demonstração
-  return [];
-};
-
 const ExperienceCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [experiences, setExperiences] = useState<MediaItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadExperiences = () => {
-      const data = getAdminCarouselData();
-      setExperiences(data);
-    };
-
-    loadExperiences();
-
-    // Escutar mudanças no localStorage
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'adminMediaCarousel') {
-        loadExperiences();
+    const loadExperiences = async () => {
+      try {
+        const data = await getCarousels('experience');
+        const mediaItems: MediaItem[] = data
+          .filter(item => item.active)
+          .sort((a, b) => a.display_order - b.display_order)
+          .map((item: CarouselItem) => ({
+            id: item.id,
+            url: item.image_url,
+            type: 'image', // Carousels are typically images
+            title: item.title,
+            alt: item.subtitle
+          }));
+        setExperiences(mediaItems);
+      } catch (error) {
+        console.error('Erro ao carregar dados do carrossel:', error);
+        setExperiences([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Também escutar mudanças customizadas
-    const handleCustomStorageChange = () => {
-      loadExperiences();
-    };
-    
-    window.addEventListener('adminMediaCarouselUpdate', handleCustomStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('adminMediaCarouselUpdate', handleCustomStorageChange);
-    };
+    loadExperiences();
   }, []);
 
   useEffect(() => {
@@ -91,6 +67,17 @@ const ExperienceCarousel = () => {
     setCurrentIndex(index);
   };
 
+  if (isLoading) {
+    return (
+      <div className="relative w-full h-64 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200/50 rounded-lg flex items-center justify-center">
+        <div className="text-center space-y-3">
+          <div className="inline-block h-6 w-6 animate-spin rounded-full border-2 border-solid border-current border-r-transparent align-[-0.125em] motion-reduce:animate-[spin_1.5s_linear_infinite]" />
+          <p className="text-xs text-muted-foreground">Carregando experiências...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (experiences.length === 0) {
     return (
       <div className="relative w-full h-64 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200/50 rounded-lg flex items-center justify-center">
@@ -102,7 +89,7 @@ const ExperienceCarousel = () => {
           </div>
           <div>
             <h3 className="text-sm font-medium text-blue-700">Carrossel de Experiências</h3>
-            <p className="text-xs text-muted-foreground">Conteúdo será gerenciado pelo administrador</p>
+            <p className="text-xs text-muted-foreground">Nenhuma experiência configurada ainda</p>
           </div>
         </div>
       </div>
@@ -143,6 +130,7 @@ const ExperienceCarousel = () => {
             <div className="absolute inset-0 bg-black bg-opacity-30 flex items-end">
               <div className="p-4 text-white">
                 <h3 className="text-lg font-semibold">{item.title}</h3>
+                {item.alt && <p className="text-sm opacity-90">{item.alt}</p>}
               </div>
             </div>
           </div>

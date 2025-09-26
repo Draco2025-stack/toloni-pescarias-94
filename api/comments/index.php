@@ -1,8 +1,12 @@
 <?php
-require_once '../../config/cors_config.php';
+/**
+ * API de Comentários - Toloni Pescarias
+ * Segue padrão do prompt-mestre
+ */
 
-require_once '../../config/database.php';
-require_once '../../config/security.php';
+// Incluir configurações unificadas
+require_once '../../config/database_hostinger.php';
+require_once '../../config/cors_unified.php';
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
@@ -84,8 +88,7 @@ function getComments($pdo) {
             }
         }
         
-        echo json_encode([
-            'success' => true,
+        sendJsonResponse(true, [
             'comments' => $tree
         ]);
         
