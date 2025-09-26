@@ -1,149 +1,131 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
+/**
+ * API de Configurações de Notificações - Toloni Pescarias
+ * Segue padrão do prompt-mestre
+ */
 
-// Configurar CORS
-$allowedOrigins = [
-    'https://tolonipescarias.com.br',
-    'http://localhost:8080',
-    'https://localhost:8080'
-];
-
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins) || strpos($origin, 'lovable') !== false) {
-    header("Access-Control-Allow-Origin: $origin");
-} else {
-    header('Access-Control-Allow-Origin: *');
-}
-
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Access-Control-Allow-Credentials: true');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
-require_once '../../config/database.php';
+// Incluir configurações unificadas
+require_once '../../config/database_hostinger.php';
+require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
 
-try {
-    // Validar sessão
-    $user = validateSession($pdo);
-    if (!$user) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
-        exit;
-    }
+// Validar método
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    getNotificationSettings();
+} elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+    updateNotificationSettings();
+} else {
+    sendError('METHOD_NOT_ALLOWED', 'Método não permitido', 405);
+}
 
-    $user_id = $user['id'];
-
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        // Buscar configurações de notificações
-        $stmt = $pdo->prepare("
-            SELECT email_notifications, push_notifications, new_reports, new_comments, 
-                   comment_replies, likes, follows, system_updates, newsletter, 
-                   fishing_tips, location_suggestions 
+function getNotificationSettings() {
+    global $pdo;
+    
+    try {
+        $user = requireAuth();
+        
+        // Buscar configurações de notificação
+        $stmt = executeQuery($pdo, "
+            SELECT email_notifications, push_notifications, new_comment_notifications, 
+                   new_follower_notifications, trophy_notifications, weekly_digest
             FROM user_notification_settings 
             WHERE user_id = ?
-        ");
-        $stmt->execute([$user_id]);
+        ", [$user['id']]);
+        
         $settings = $stmt->fetch();
-
+        
+        // Se não existir, criar configurações padrão
         if (!$settings) {
-            // Criar configurações padrão se não existirem
-            $stmt = $pdo->prepare("
+            executeQuery($pdo, "
                 INSERT INTO user_notification_settings 
-                (user_id, email_notifications, push_notifications, new_reports, new_comments, 
-                 comment_replies, likes, follows, system_updates, newsletter, fishing_tips, location_suggestions) 
-                VALUES (?, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1)
-            ");
-            $stmt->execute([$user_id]);
+                (user_id, email_notifications, push_notifications, new_comment_notifications, 
+                 new_follower_notifications, trophy_notifications, weekly_digest)
+                VALUES (?, 1, 1, 1, 1, 1, 1)
+            ", [$user['id']]);
             
             $settings = [
-                'email_notifications' => 1,
-                'push_notifications' => 1,
-                'new_reports' => 1,
-                'new_comments' => 1,
-                'comment_replies' => 1,
-                'likes' => 1,
-                'follows' => 1,
-                'system_updates' => 1,
-                'newsletter' => 0,
-                'fishing_tips' => 1,
-                'location_suggestions' => 1
+                'email_notifications' => true,
+                'push_notifications' => true,
+                'new_comment_notifications' => true,
+                'new_follower_notifications' => true,
+                'trophy_notifications' => true,
+                'weekly_digest' => true
             ];
+        } else {
+            // Converter para booleanos
+            $settings['email_notifications'] = (bool)$settings['email_notifications'];
+            $settings['push_notifications'] = (bool)$settings['push_notifications'];
+            $settings['new_comment_notifications'] = (bool)$settings['new_comment_notifications'];
+            $settings['new_follower_notifications'] = (bool)$settings['new_follower_notifications'];
+            $settings['trophy_notifications'] = (bool)$settings['trophy_notifications'];
+            $settings['weekly_digest'] = (bool)$settings['weekly_digest'];
         }
-
-        // Converter para boolean
-        $settings = array_map(function($value) {
-            return (bool)$value;
-        }, $settings);
-
-        echo json_encode([
-            'success' => true,
+        
+        sendJsonResponse(true, [
             'settings' => $settings
         ]);
+        
+    } catch (Exception $e) {
+        error_log("Get notification settings error: " . $e->getMessage());
+        sendError('INTERNAL_ERROR', 'Erro interno do servidor', 500);
+    }
+}
 
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        // Atualizar configurações de notificações
+function updateNotificationSettings() {
+    global $pdo;
+    
+    try {
+        $user = requireAuth();
+        
+        // Decodificar entrada JSON
         $input = json_decode(file_get_contents('php://input'), true);
         
         if (!$input) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
-            exit;
+            sendError('INVALID_INPUT', 'Dados de entrada inválidos');
         }
-
-        $email_notifications = isset($input['emailNotifications']) ? (int)$input['emailNotifications'] : 1;
-        $push_notifications = isset($input['pushNotifications']) ? (int)$input['pushNotifications'] : 1;
-        $new_reports = isset($input['newReports']) ? (int)$input['newReports'] : 1;
-        $new_comments = isset($input['newComments']) ? (int)$input['newComments'] : 1;
-        $comment_replies = isset($input['commentReplies']) ? (int)$input['commentReplies'] : 1;
-        $likes = isset($input['likes']) ? (int)$input['likes'] : 1;
-        $follows = isset($input['follows']) ? (int)$input['follows'] : 1;
-        $system_updates = isset($input['systemUpdates']) ? (int)$input['systemUpdates'] : 1;
-        $newsletter = isset($input['newsletter']) ? (int)$input['newsletter'] : 0;
-        $fishing_tips = isset($input['fishingTips']) ? (int)$input['fishingTips'] : 1;
-        $location_suggestions = isset($input['locationSuggestions']) ? (int)$input['locationSuggestions'] : 1;
-
-        // Inserir ou atualizar configurações
-        $stmt = $pdo->prepare("
-            INSERT INTO user_notification_settings 
-            (user_id, email_notifications, push_notifications, new_reports, new_comments, 
-             comment_replies, likes, follows, system_updates, newsletter, fishing_tips, location_suggestions) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE 
-            email_notifications = VALUES(email_notifications),
-            push_notifications = VALUES(push_notifications),
-            new_reports = VALUES(new_reports),
-            new_comments = VALUES(new_comments),
-            comment_replies = VALUES(comment_replies),
-            likes = VALUES(likes),
-            follows = VALUES(follows),
-            system_updates = VALUES(system_updates),
-            newsletter = VALUES(newsletter),
-            fishing_tips = VALUES(fishing_tips),
-            location_suggestions = VALUES(location_suggestions),
-            updated_at = CURRENT_TIMESTAMP
-        ");
         
-        $stmt->execute([$user_id, $email_notifications, $push_notifications, $new_reports, 
-                       $new_comments, $comment_replies, $likes, $follows, $system_updates, 
-                       $newsletter, $fishing_tips, $location_suggestions]);
-
+        // Validar dados
+        $emailNotifications = isset($input['email_notifications']) ? (bool)$input['email_notifications'] : null;
+        $pushNotifications = isset($input['push_notifications']) ? (bool)$input['push_notifications'] : null;
+        $newCommentNotifications = isset($input['new_comment_notifications']) ? (bool)$input['new_comment_notifications'] : null;
+        $newFollowerNotifications = isset($input['new_follower_notifications']) ? (bool)$input['new_follower_notifications'] : null;
+        $trophyNotifications = isset($input['trophy_notifications']) ? (bool)$input['trophy_notifications'] : null;
+        $weeklyDigest = isset($input['weekly_digest']) ? (bool)$input['weekly_digest'] : null;
+        
+        // Atualizar configurações (INSERT ... ON DUPLICATE KEY UPDATE)
+        executeQuery($pdo, "
+            INSERT INTO user_notification_settings 
+            (user_id, email_notifications, push_notifications, new_comment_notifications, 
+             new_follower_notifications, trophy_notifications, weekly_digest)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+            email_notifications = COALESCE(VALUES(email_notifications), email_notifications),
+            push_notifications = COALESCE(VALUES(push_notifications), push_notifications),
+            new_comment_notifications = COALESCE(VALUES(new_comment_notifications), new_comment_notifications),
+            new_follower_notifications = COALESCE(VALUES(new_follower_notifications), new_follower_notifications),
+            trophy_notifications = COALESCE(VALUES(trophy_notifications), trophy_notifications),
+            weekly_digest = COALESCE(VALUES(weekly_digest), weekly_digest),
+            updated_at = NOW()
+        ", [
+            $user['id'],
+            $emailNotifications,
+            $pushNotifications,
+            $newCommentNotifications,
+            $newFollowerNotifications,
+            $trophyNotifications,
+            $weeklyDigest
+        ]);
+        
         // Log de segurança
-        logSecurityEvent($pdo, $user_id, 'NOTIFICATION_SETTINGS_UPDATED', json_encode($input));
-
-        echo json_encode([
-            'success' => true,
+        logSecurityEvent($pdo, $user['id'], 'NOTIFICATION_SETTINGS_UPDATED', "Fields: " . implode(', ', array_keys($input)));
+        
+        sendJsonResponse(true, [
             'message' => 'Configurações de notificação atualizadas com sucesso'
         ]);
+        
+    } catch (Exception $e) {
+        error_log("Update notification settings error: " . $e->getMessage());
+        sendError('INTERNAL_ERROR', 'Erro interno do servidor', 500);
     }
-
-} catch (Exception $e) {
-    error_log("Notification settings error: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
 }
 ?>

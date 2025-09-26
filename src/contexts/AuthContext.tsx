@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AuthService, type AuthUser } from '@/services/authService';
+import { AuthService, type AuthUser, type AuthResponse } from '@/services/authService';
 
 // Define types for User and Auth Context
 export type User = AuthUser;
@@ -10,8 +10,8 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  forgotPassword: (email: string) => Promise<{ success: boolean; message: string }>;
-  resetPassword: (token: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
+  forgotPassword: (email: string) => Promise<AuthResponse>;
+  resetPassword: (token: string, newPassword: string) => Promise<AuthResponse>;
   resendVerification: (email: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await AuthService.login(email, password);
 
       if (!data.success) {
-        throw new Error(data.message || 'Falha ao realizar login');
+        throw new Error(data.error?.message || data.message || 'Falha ao realizar login');
       }
 
       // Verificar email apenas em produção e para não-admins
@@ -128,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await AuthService.register(name, email, password);
 
       if (!data.success) {
-        throw new Error(data.message || 'Falha ao criar conta');
+        throw new Error(data.error?.message || data.message || 'Falha ao criar conta');
       }
 
       // Não fazer login automático - usuário precisa verificar email primeiro
@@ -149,7 +149,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await AuthService.resendVerification(email);
 
       if (!data.success) {
-        throw new Error(data.message || 'Falha ao reenviar verificação');
+        throw new Error(data.error?.message || data.message || 'Falha ao reenviar verificação');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao reenviar verificação");

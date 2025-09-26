@@ -1,200 +1,164 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
+/**
+ * API de Perfil do Usuário - Toloni Pescarias
+ * Segue padrão do prompt-mestre
+ */
 
-// Configurar CORS
-$allowedOrigins = [
-    'https://tolonipescarias.com.br',
-    'http://localhost:8080',
-    'https://localhost:8080'
-];
-
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins) || strpos($origin, 'lovable') !== false) {
-    header("Access-Control-Allow-Origin: $origin");
-} else {
-    header('Access-Control-Allow-Origin: *');
-}
-
-header('Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Access-Control-Allow-Credentials: true');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
-}
-
-require_once '../../config/database.php';
+// Incluir configurações unificadas
+require_once '../../config/database_hostinger.php';
+require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
-require_once '../../config/security.php';
 
-try {
-    // Validar sessão
-    $user = validateSession($pdo);
-    if (!$user) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
-        exit;
-    }
+// Validar método
+if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+    getUserProfile();
+} elseif ($_SERVER['REQUEST_METHOD'] === 'PUT') {
+    updateUserProfile();
+} else {
+    sendError('METHOD_NOT_ALLOWED', 'Método não permitido', 405);
+}
 
-    $user_id = $user['id'];
-
-    if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-        // Buscar dados do perfil do usuário
-        $stmt = $pdo->prepare("
-            SELECT name, email, bio, profile_image, phone, location, experience_level, created_at 
+function getUserProfile() {
+    global $pdo;
+    
+    try {
+        $user = requireAuth();
+        
+        // Buscar dados completos do usuário
+        $stmt = executeQuery($pdo, "
+            SELECT id, name, email, bio, phone, location, profile_image, 
+                   experience_level, email_verified, created_at
             FROM users 
-            WHERE id = ?
-        ");
-        $stmt->execute([$user_id]);
-        $profile = $stmt->fetch();
-
-        if (!$profile) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Usuário não encontrado']);
-            exit;
+            WHERE id = ? AND active = 1
+        ", [$user['id']]);
+        
+        $userData = $stmt->fetch();
+        
+        if (!$userData) {
+            sendError('USER_NOT_FOUND', 'Usuário não encontrado', 404);
         }
-
-        // Buscar relatórios do usuário
-        $stmt = $pdo->prepare("
-            SELECT id, title, content, location_id, images, fish_species, fish_weight, 
-                   is_public, approved, likes_count, comments_count, created_at,
-                   (SELECT name FROM locations WHERE id = reports.location_id) as location_name
-            FROM reports 
-            WHERE user_id = ? 
-            ORDER BY created_at DESC
-        ");
-        $stmt->execute([$user_id]);
-        $reports = $stmt->fetchAll();
-
-        // Processar relatórios
-        foreach ($reports as &$report) {
-            $report['images'] = json_decode($report['images'] ?? '[]', true);
-            $report['is_public'] = (bool)$report['is_public'];
-            $report['approved'] = (bool)$report['approved'];
-        }
-
-        echo json_encode([
-            'success' => true,
-            'profile' => $profile,
-            'reports' => $reports
+        
+        // Buscar estatísticas do usuário
+        $stats = [];
+        
+        // Contagem de relatórios
+        $stmt = executeQuery($pdo, "SELECT COUNT(*) FROM reports WHERE user_id = ?", [$user['id']]);
+        $stats['reports_count'] = (int)$stmt->fetchColumn();
+        
+        // Contagem de curtidas recebidas
+        $stmt = executeQuery($pdo, "
+            SELECT COUNT(*) FROM report_likes rl 
+            JOIN reports r ON rl.report_id = r.id 
+            WHERE r.user_id = ?
+        ", [$user['id']]);
+        $stats['likes_received'] = (int)$stmt->fetchColumn();
+        
+        // Conversões de tipo
+        $userData['email_verified'] = (bool)$userData['email_verified'];
+        
+        sendJsonResponse(true, [
+            'user' => $userData,
+            'stats' => $stats
         ]);
+        
+    } catch (Exception $e) {
+        error_log("Get user profile error: " . $e->getMessage());
+        sendError('INTERNAL_ERROR', 'Erro interno do servidor', 500);
+    }
+}
 
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST' || $_SERVER['REQUEST_METHOD'] === 'PUT') {
-        // Atualizar perfil do usuário
+function updateUserProfile() {
+    global $pdo;
+    
+    try {
+        $user = requireAuth();
+        
+        // Decodificar entrada JSON
         $input = json_decode(file_get_contents('php://input'), true);
         
         if (!$input) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
-            exit;
+            sendError('INVALID_INPUT', 'Dados de entrada inválidos');
         }
-
-        $name = trim($input['name'] ?? '');
-        $bio = trim($input['bio'] ?? '');
-        $phone = trim($input['phone'] ?? '');
-        $location = trim($input['location'] ?? '');
-        $experience_level = $input['experience_level'] ?? 'iniciante';
-
-        // Validações
-        if (empty($name)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Nome é obrigatório']);
-            exit;
-        }
-
-        if (strlen($name) > 100) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Nome muito longo']);
-            exit;
-        }
-
-        if (strlen($bio) > 500) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Bio muito longa']);
-            exit;
-        }
-
-        $allowed_experience = ['iniciante', 'intermediario', 'avancado', 'profissional'];
-        if (!in_array($experience_level, $allowed_experience)) {
-            $experience_level = 'iniciante';
-        }
-
-        // Atualizar perfil
-        $stmt = $pdo->prepare("
-            UPDATE users 
-            SET name = ?, bio = ?, phone = ?, location = ?, experience_level = ?, updated_at = CURRENT_TIMESTAMP 
-            WHERE id = ?
-        ");
-        $stmt->execute([$name, $bio, $phone, $location, $experience_level, $user_id]);
-
-        // Alterar senha se fornecida
-        if (!empty($input['newPassword'])) {
-            $currentPassword = $input['currentPassword'] ?? '';
-            $newPassword = $input['newPassword'];
-            $confirmPassword = $input['confirmPassword'] ?? '';
-
-            // Validar senha atual
-            $stmt = $pdo->prepare("SELECT password_hash FROM users WHERE id = ?");
-            $stmt->execute([$user_id]);
-            $currentHash = $stmt->fetchColumn();
-
-            if (!password_verify($currentPassword, $currentHash)) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Senha atual incorreta']);
-                exit;
+        
+        $updates = [];
+        $params = [];
+        
+        // Validar e preparar campos para atualização
+        if (isset($input['name'])) {
+            $name = trim($input['name']);
+            if (empty($name) || strlen($name) > 100) {
+                sendError('INVALID_INPUT', 'Nome deve ter entre 1 e 100 caracteres');
             }
-
-            if ($newPassword !== $confirmPassword) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Confirmação de senha não confere']);
-                exit;
-            }
-
-            if (strlen($newPassword) < 6) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Nova senha deve ter pelo menos 6 caracteres']);
-                exit;
-            }
-
-            // Atualizar senha
-            $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-            $stmt = $pdo->prepare("UPDATE users SET password_hash = ? WHERE id = ?");
-            $stmt->execute([$newHash, $user_id]);
-
-            // Log de segurança
-            logSecurityEvent($pdo, $user_id, 'PASSWORD_CHANGED', 'Password changed via profile');
+            $updates[] = "name = ?";
+            $params[] = $name;
         }
-
-        // Atualizar visibilidade dos relatórios se fornecida
-        if (isset($input['reportVisibility']) && is_array($input['reportVisibility'])) {
-            foreach ($input['reportVisibility'] as $report_id => $is_public) {
-                $stmt = $pdo->prepare("
-                    UPDATE reports 
-                    SET is_public = ? 
-                    WHERE id = ? AND user_id = ?
-                ");
-                $stmt->execute([(int)$is_public, $report_id, $user_id]);
+        
+        if (isset($input['bio'])) {
+            $bio = trim($input['bio']);
+            if (strlen($bio) > 500) {
+                sendError('INVALID_INPUT', 'Bio deve ter no máximo 500 caracteres');
             }
+            $updates[] = "bio = ?";
+            $params[] = $bio;
         }
-
+        
+        if (isset($input['phone'])) {
+            $phone = trim($input['phone']);
+            if (!empty($phone) && !preg_match('/^\(\d{2}\)\s\d{4,5}-\d{4}$/', $phone)) {
+                sendError('INVALID_INPUT', 'Formato de telefone inválido. Use: (11) 99999-9999');
+            }
+            $updates[] = "phone = ?";
+            $params[] = $phone;
+        }
+        
+        if (isset($input['location'])) {
+            $location = trim($input['location']);
+            if (strlen($location) > 100) {
+                sendError('INVALID_INPUT', 'Localização deve ter no máximo 100 caracteres');
+            }
+            $updates[] = "location = ?";
+            $params[] = $location;
+        }
+        
+        if (isset($input['experience_level'])) {
+            $validLevels = ['iniciante', 'intermediario', 'avancado', 'profissional'];
+            if (!in_array($input['experience_level'], $validLevels)) {
+                sendError('INVALID_INPUT', 'Nível de experiência inválido');
+            }
+            $updates[] = "experience_level = ?";
+            $params[] = $input['experience_level'];
+        }
+        
+        if (isset($input['profile_image'])) {
+            $profileImage = trim($input['profile_image']);
+            if (!empty($profileImage) && !filter_var($profileImage, FILTER_VALIDATE_URL)) {
+                sendError('INVALID_INPUT', 'URL da imagem de perfil inválida');
+            }
+            $updates[] = "profile_image = ?";
+            $params[] = $profileImage;
+        }
+        
+        if (empty($updates)) {
+            sendError('INVALID_INPUT', 'Nenhum campo válido para atualizar');
+        }
+        
+        // Atualizar usuário
+        $updates[] = "updated_at = NOW()";
+        $params[] = $user['id'];
+        
+        $sql = "UPDATE users SET " . implode(', ', $updates) . " WHERE id = ?";
+        executeQuery($pdo, $sql, $params);
+        
         // Log de segurança
-        logSecurityEvent($pdo, $user_id, 'PROFILE_UPDATED', json_encode([
-            'name_changed' => !empty($input['name']),
-            'bio_changed' => !empty($input['bio']),
-            'password_changed' => !empty($input['newPassword']),
-            'reports_visibility_changed' => !empty($input['reportVisibility'])
-        ]));
-
-        echo json_encode([
-            'success' => true,
+        logSecurityEvent($pdo, $user['id'], 'PROFILE_UPDATED', "Fields: " . implode(', ', array_keys($input)));
+        
+        sendJsonResponse(true, [
             'message' => 'Perfil atualizado com sucesso'
         ]);
+        
+    } catch (Exception $e) {
+        error_log("Update user profile error: " . $e->getMessage());
+        sendError('INTERNAL_ERROR', 'Erro interno do servidor', 500);
     }
-
-} catch (Exception $e) {
-    error_log("Profile error: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
 }
 ?>

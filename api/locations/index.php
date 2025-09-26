@@ -1,8 +1,13 @@
 <?php
-require_once '../../config/cors_config.php';
+/**
+ * API de Localizações - Toloni Pescarias
+ * Segue padrão do prompt-mestre
+ */
 
-require_once '../../config/database.php';
-require_once '../../config/security.php';
+// Incluir configurações unificadas
+require_once '../../config/database_hostinger.php';
+require_once '../../config/cors_unified.php';
+require_once '../../config/session_cookies.php';
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
@@ -119,15 +124,17 @@ function getLocations($pdo) {
         $count_stmt->execute($count_params);
         $total = $count_stmt->fetchColumn();
         
-        echo json_encode([
-            'success' => true,
+        // Padronizar paginação
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $currentOffset = ($page - 1) * $limit;
+        $hasNext = ($currentOffset + $limit) < $total;
+        
+        sendJsonResponse(true, [
             'locations' => $locations,
-            'pagination' => [
-                'total' => (int)$total,
-                'limit' => $limit,
-                'offset' => $offset,
-                'has_more' => ($offset + $limit) < $total
-            ]
+            'page' => $page,
+            'limit' => $limit,
+            'total' => (int)$total,
+            'hasNext' => $hasNext
         ]);
         
     } catch (Exception $e) {

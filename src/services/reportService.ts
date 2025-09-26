@@ -1,7 +1,19 @@
-// Serviço para gerenciar relatórios de pesca
-const API_BASE = import.meta.env.DEV 
-  ? 'http://localhost:8080' 
-  : 'https://tolonipescarias.com.br';
+// Serviço para gerenciar relatórios de pesca - APIs Reais
+
+// Detectar ambiente e configurar API base
+const getApiBaseUrl = (): string => {
+  const hostname = window.location.hostname;
+  
+  // Produção
+  if (hostname.includes('tolonipescarias.com.br')) {
+    return 'https://tolonipescarias.com.br/api';
+  }
+  
+  // Desenvolvimento Lovable (usar API real)
+  return '/api';
+};
+
+const API_BASE = getApiBaseUrl();
 
 export interface Report {
   id: string;
@@ -51,7 +63,7 @@ export interface UpdateReportData {
 // Get all reports
 export const getAllReports = async (): Promise<Report[]> => {
   try {
-    const response = await fetch(`${API_BASE}/api/reports/index.php`, {
+    const response = await fetch(`${API_BASE}/reports/index.php`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -75,7 +87,7 @@ export const getAllReports = async (): Promise<Report[]> => {
 // Get reports by location
 export const getReportsByLocation = async (locationId: string): Promise<Report[]> => {
   try {
-    const response = await fetch(`${API_BASE}/api/reports/index.php?location_id=${locationId}`, {
+    const response = await fetch(`${API_BASE}/reports/index.php?location_id=${locationId}`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -100,8 +112,8 @@ export const getReportsByLocation = async (locationId: string): Promise<Report[]
 export const getReportsByUser = async (userId?: string): Promise<Report[]> => {
   try {
     const url = userId 
-      ? `${API_BASE}/api/reports/index.php?user_id=${userId}`
-      : `${API_BASE}/api/reports/index.php?my_reports=true`;
+      ? `${API_BASE}/reports/index.php?user_id=${userId}`
+      : `${API_BASE}/reports/index.php?my_reports=true`;
       
     const response = await fetch(url, {
       method: 'GET',
@@ -127,7 +139,7 @@ export const getReportsByUser = async (userId?: string): Promise<Report[]> => {
 // Get single report
 export const getReport = async (id: string): Promise<Report | null> => {
   try {
-    const response = await fetch(`${API_BASE}/api/reports/index.php?id=${id}`, {
+    const response = await fetch(`${API_BASE}/reports/index.php?id=${id}`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -172,7 +184,7 @@ export const createReport = async (reportData: CreateReportData): Promise<{ succ
       formData.append('video', reportData.video);
     }
 
-    const response = await fetch(`${API_BASE}/api/reports/index.php`, {
+    const response = await fetch(`${API_BASE}/reports/index.php`, {
       method: 'POST',
       credentials: 'include',
       body: formData,
@@ -197,7 +209,7 @@ export const createReport = async (reportData: CreateReportData): Promise<{ succ
 // Update report
 export const updateReport = async (id: string, reportData: UpdateReportData): Promise<{ success: boolean; message?: string }> => {
   try {
-    const response = await fetch(`${API_BASE}/api/reports/index.php`, {
+    const response = await fetch(`${API_BASE}/reports/index.php`, {
       method: 'PUT',
       credentials: 'include',
       headers: {
@@ -227,7 +239,7 @@ export const updateReport = async (id: string, reportData: UpdateReportData): Pr
 // Delete report
 export const deleteReport = async (id: string): Promise<{ success: boolean; message?: string }> => {
   try {
-    const response = await fetch(`${API_BASE}/api/reports/index.php`, {
+    const response = await fetch(`${API_BASE}/reports/index.php`, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
@@ -256,7 +268,7 @@ export const deleteReport = async (id: string): Promise<{ success: boolean; mess
 // Toggle report like
 export const toggleReportLike = async (id: string): Promise<{ success: boolean; liked: boolean; likes_count: number }> => {
   try {
-    const response = await fetch(`${API_BASE}/api/reports/index.php`, {
+    const response = await fetch(`${API_BASE}/reports/index.php`, {
       method: 'POST',
       credentials: 'include',
       headers: {

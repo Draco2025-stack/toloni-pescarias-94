@@ -1,7 +1,19 @@
-// Serviço para gerenciar localidades de pesca
-const API_BASE = import.meta.env.DEV 
-  ? 'http://localhost:8080' 
-  : 'https://tolonipescarias.com.br';
+// Serviço para gerenciar localidades de pesca - APIs Reais
+
+// Detectar ambiente e configurar API base  
+const getApiBaseUrl = (): string => {
+  const hostname = window.location.hostname;
+  
+  // Produção
+  if (hostname.includes('tolonipescarias.com.br')) {
+    return 'https://tolonipescarias.com.br/api';
+  }
+  
+  // Desenvolvimento Lovable (usar API real)
+  return '/api';
+};
+
+const API_BASE = getApiBaseUrl();
 
 export interface Location {
   id: string;
@@ -42,7 +54,7 @@ export interface CreateLocationData {
 // Get all locations
 export const getLocations = async (): Promise<Location[]> => {
   try {
-    const response = await fetch(`${API_BASE}/api/locations/index.php`, {
+    const response = await fetch(`${API_BASE}/locations/index.php`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -66,7 +78,7 @@ export const getLocations = async (): Promise<Location[]> => {
 // Get single location
 export const getLocation = async (id: string): Promise<Location | null> => {
   try {
-    const response = await fetch(`${API_BASE}/api/locations/index.php?id=${id}`, {
+    const response = await fetch(`${API_BASE}/locations/index.php?id=${id}`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -90,7 +102,7 @@ export const getLocation = async (id: string): Promise<Location | null> => {
 // Get featured locations
 export const getFeaturedLocations = async (): Promise<Location[]> => {
   try {
-    const response = await fetch(`${API_BASE}/api/locations/index.php?featured=true`, {
+    const response = await fetch(`${API_BASE}/locations/index.php?featured=true`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -137,7 +149,7 @@ export const createLocation = async (locationData: CreateLocationData): Promise<
       formData.append('image', locationData.image);
     }
 
-    const response = await fetch(`${API_BASE}/api/locations/index.php`, {
+    const response = await fetch(`${API_BASE}/locations/index.php`, {
       method: 'POST',
       credentials: 'include',
       body: formData,
@@ -162,7 +174,7 @@ export const createLocation = async (locationData: CreateLocationData): Promise<
 // Update location (admin only)
 export const updateLocation = async (id: string, locationData: Partial<CreateLocationData>): Promise<{ success: boolean; message?: string }> => {
   try {
-    const response = await fetch(`${API_BASE}/api/locations/index.php`, {
+    const response = await fetch(`${API_BASE}/locations/index.php`, {
       method: 'PUT',
       credentials: 'include',
       headers: {
@@ -192,7 +204,7 @@ export const updateLocation = async (id: string, locationData: Partial<CreateLoc
 // Delete location (admin only)
 export const deleteLocation = async (id: string): Promise<{ success: boolean; message?: string }> => {
   try {
-    const response = await fetch(`${API_BASE}/api/locations/index.php`, {
+    const response = await fetch(`${API_BASE}/locations/index.php`, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
@@ -221,7 +233,7 @@ export const deleteLocation = async (id: string): Promise<{ success: boolean; me
 // Search locations
 export const searchLocations = async (query: string): Promise<Location[]> => {
   try {
-    const response = await fetch(`${API_BASE}/api/locations/index.php?search=${encodeURIComponent(query)}`, {
+    const response = await fetch(`${API_BASE}/locations/index.php?search=${encodeURIComponent(query)}`, {
       method: 'GET',
       credentials: 'include',
       headers: {
