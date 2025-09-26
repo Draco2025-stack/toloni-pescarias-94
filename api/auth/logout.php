@@ -1,76 +1,37 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
+/**
+ * API de Logout - Toloni Pescarias
+ * Segue padrão do prompt-mestre
+ */
 
-// Configurar CORS dinamicamente baseado no ambiente
-$allowedOrigins = [
-    'https://tolonipescarias.com.br',
-    'http://localhost:8080',
-    'https://localhost:8080'
-];
-
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin, $allowedOrigins) || strpos($origin, 'lovable') !== false) {
-    header("Access-Control-Allow-Origin: $origin");
-} else {
-    header('Access-Control-Allow-Origin: *');
-}
-
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Access-Control-Allow-Credentials: true');
-
-// Garantir que não há saída antes do JSON
-ob_start();
-
-// Capturar erros fatais
-register_shutdown_function(function() {
-    $error = error_get_last();
-    if ($error !== NULL && $error['type'] === E_ERROR) {
-        ob_clean();
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
-    }
-});
-
-require_once '../../config/database.php';
-require_once '../../config/security.php';
+// Incluir configurações unificadas
+require_once '../../config/database_hostinger.php';
+require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['success' => false, 'message' => 'Método não permitido']);
-    exit;
-}
+// Validar método
+requireMethod('POST');
 
 try {
-    $session_token = $_COOKIE['session_token'] ?? null;
+    $sessionToken = $_COOKIE['session_token'] ?? null;
     
-    if ($session_token) {
+    if ($sessionToken) {
         // Obter dados do usuário antes de destruir a sessão
-        $user = validateSession($pdo, $session_token);
+        $user = validateSession($pdo, $sessionToken);
         
         if ($user) {
             // Log de segurança
-            logSecurityEvent($pdo, $user['id'], 'LOGOUT_SUCCESS', "Session: $session_token");
+            logSecurityEvent($pdo, $user['id'], 'LOGOUT_SUCCESS', "Session: $sessionToken");
         }
         
         // Destruir sessão
-        destroyUserSession($pdo, $session_token);
+        destroyUserSession($pdo, $sessionToken);
     }
     
-    // Limpar buffer e retornar sucesso
-    ob_clean();
-    echo json_encode([
-        'success' => true,
-        'message' => 'Logout realizado com sucesso'
-    ]);
+    sendJsonResponse(true, null);
 
 } catch (Exception $e) {
     error_log("Logout error: " . $e->getMessage());
-    ob_clean();
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
-} finally {
-    ob_end_flush();
+    sendError('INTERNAL_ERROR', 'Erro interno do servidor', 500);
 }
 ?>
