@@ -2,7 +2,12 @@
 // Sistema de autenticação baseado em cookies seguros
 
 // Configurações de cookie seguros
-function setSecureCookie($name, $value, $expires = null, $httpOnly = true, $secure = true, $sameSite = 'Lax') {
+function setSecureCookie($name, $value, $expires = null, $httpOnly = true, $secure = null, $sameSite = 'Lax') {
+    // Auto-detectar HTTPS se $secure não foi especificado
+    if ($secure === null) {
+        $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+    }
+    
     $expires = $expires ?: time() + (7 * 24 * 60 * 60); // 7 dias por padrão
     
     $options = [

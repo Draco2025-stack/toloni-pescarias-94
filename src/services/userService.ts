@@ -1,7 +1,25 @@
 // Serviço para gerenciar dados de usuário
-const API_BASE = import.meta.env.DEV 
-  ? 'http://localhost:8080' 
-  : 'https://tolonipescarias.com.br';
+// Detectar ambiente de forma robusta
+const getApiBaseUrl = (): string => {
+  const hostname = window.location.hostname;
+  
+  // Produção Hostinger
+  if (hostname.includes('tolonipescarias.com.br') || 
+      hostname.includes('tolonipescarias.com') ||
+      (window.location.protocol === 'https:' && hostname !== 'localhost' && !hostname.includes('lovable.app'))) {
+    return `https://${hostname}`;
+  }
+  
+  // Desenvolvimento local
+  if (hostname === 'localhost' || hostname.startsWith('127.0.0.1')) {
+    return window.location.origin;
+  }
+  
+  // Fallback
+  return window.location.origin;
+};
+
+const API_BASE = getApiBaseUrl();
 
 export interface PrivacySettings {
   profileVisibility: boolean;

@@ -25,12 +25,19 @@ export interface AuthResponse {
 const getApiBaseUrl = (): string => {
   const hostname = window.location.hostname;
   
-  // Produção
-  if (hostname.includes('tolonipescarias.com.br')) {
-    return 'https://tolonipescarias.com.br/api';
+  // Produção Hostinger - Detecção robusta
+  if (hostname.includes('tolonipescarias.com.br') || 
+      hostname.includes('tolonipescarias.com') ||
+      (window.location.protocol === 'https:' && hostname !== 'localhost' && !hostname.includes('lovable.app'))) {
+    return `https://${hostname}/api`;
   }
   
-  // Desenvolvimento Lovable (usar API real mesmo em desenvolvimento)
+  // Desenvolvimento local
+  if (hostname === 'localhost' || hostname.startsWith('127.0.0.1')) {
+    return '/api';
+  }
+  
+  // Fallback para outros ambientes (Lovable preview, etc)
   return '/api';
 };
 
