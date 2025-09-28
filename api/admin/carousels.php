@@ -14,8 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // Verificar se é admin
-if (!checkAdminAuth($pdo)) {
-    http_response_code(401);
+$user = validateSession($pdo);
+if (!$user || !$user['is_admin']) {
+    http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Acesso negado']);
     exit;
 }
@@ -158,25 +159,4 @@ function deleteCarousel($pdo) {
         'success' => true,
         'message' => 'Carrossel removido com sucesso'
     ]);
-}
-
-function checkAdminAuth($pdo) {
-    
-    if (!isset($_COOKIE['user_session'])) {
-        return false;
-    }
-    
-    $sessionToken = $_COOKIE['user_session'];
-    
-    $stmt = $pdo->prepare("
-        SELECT u.is_admin 
-        FROM users u 
-        JOIN user_sessions s ON u.id = s.user_id 
-        WHERE s.session_token = ? AND s.expires_at > NOW() AND s.is_active = 1
-    ");
-    $stmt->execute([$sessionToken]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-    
-    return $user && $user['is_admin'] == 1;
-}
 ?>

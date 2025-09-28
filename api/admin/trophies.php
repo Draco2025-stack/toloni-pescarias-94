@@ -2,7 +2,7 @@
 require_once '../../config/database_hostinger.php';
 require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
-require_once '../includes/middleware.php';
+require_once '../middleware/auth.php';
 
 // Set content type to JSON
 header('Content-Type: application/json');
@@ -19,8 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 // Verificar se é admin
 $user = validateSession($pdo);
-if (!$user || $user['role'] !== 'admin') {
-    http_response_code(401);
+if (!$user || !$user['is_admin']) {
+    http_response_code(403);
     echo json_encode(['success' => false, 'message' => 'Acesso negado']);
     exit;
 }
