@@ -2,29 +2,27 @@
 RewriteEngine On
 
 # Forçar HTTPS
-RewriteCond %{HTTPS} off
-RewriteCond %{HTTP_HOST} tolonipescarias\.com\.br$ [NC]
-RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+RewriteCond %{HTTPS} !=on
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Headers de Segurança
+# Forçar domínio canônico (apex sem www)
+RewriteCond %{HTTP_HOST} ^www\.tolonipescarias\.com\.br$ [NC]
+RewriteRule ^ https://tolonipescarias.com.br%{REQUEST_URI} [L,R=301]
+
+# Não reescrever a API
+RewriteRule ^api/ - [L]
+
+# Cabeçalhos de segurança
 <IfModule mod_headers.c>
-    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
-    Header always set X-XSS-Protection "1; mode=block"
-    Header always set X-Content-Type-Options "nosniff"
-    Header always set X-Frame-Options "DENY"
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set Referrer-Policy "no-referrer-when-downgrade"
 </IfModule>
 
-# NÃO reescrever APIs
-RewriteCond %{REQUEST_URI} ^/api/ [NC]
-RewriteRule ^ - [L]
-
-# NÃO reescrever arquivos existentes
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^ - [L]
-
-# SPA Fallback para React Router
-RewriteRule ^ index.html [L]
+# SPA fallback
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.html [L]
 
 # Proteção uploads
 <IfModule mod_rewrite.c>
