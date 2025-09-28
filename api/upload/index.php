@@ -2,27 +2,22 @@
 require_once '../../config/database_hostinger.php';
 require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
+require_once '../../lib/response.php';
 
 try {
     // Validar autenticação
     $user = validateSession($pdo);
     if (!$user) {
-        http_response_code(401);
-        echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
-        exit;
+        json_error('Usuário não autenticado', 401);
     }
 
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        echo json_encode(['success' => false, 'message' => 'Método não permitido']);
-        exit;
+        json_error('Método não permitido', 405);
     }
 
     // Verificar se arquivo foi enviado
     if (!isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Nenhum arquivo válido enviado']);
-        exit;
+        json_error('Nenhum arquivo válido enviado');
     }
 
     $file = $_FILES['file'];
@@ -32,9 +27,7 @@ try {
     $maxSizeMB = (int) getEnvOrDefault('UPLOAD_MAX_MB', 100);
     $maxSize = $maxSizeMB * 1024 * 1024; // Converter MB para bytes
     if ($file['size'] > $maxSize) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => "Arquivo muito grande. Máximo {$maxSizeMB}MB permitido"]);
-        exit;
+        json_error("Arquivo muito grande. Máximo {$maxSizeMB}MB permitido");
     }
 
     // Validar tipo de arquivo com MIME
@@ -49,9 +42,7 @@ try {
     finfo_close($finfo);
 
     if (!in_array($mimeType, $allowedTypes)) {
-        http_response_code(400);
-        echo json_encode(['success' => false, 'message' => 'Tipo de arquivo não permitido. Use JPEG, PNG, WebP, GIF, MP4, MOV ou AVI']);
-        exit;
+        json_error('Tipo de arquivo não permitido. Use JPEG, PNG, WebP, GIF, MP4, MOV ou AVI');
     }
 
     // Determinar se é imagem ou vídeo
@@ -65,9 +56,7 @@ try {
     if ($isImage) {
         $imageInfo = getimagesize($file['tmp_name']);
         if ($imageInfo === false) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Arquivo não é uma imagem válida']);
-            exit;
+            json_error('Arquivo não é uma imagem válida');
         }
 
         $width = $imageInfo[0];
@@ -84,12 +73,7 @@ try {
         $limit = $limits[$type] ?? $limits['general'];
         
         if ($width > $limit['max_width'] || $height > $limit['max_height']) {
-            http_response_code(400);
-            echo json_encode([
-                'success' => false, 
-                'message' => "Imagem muito grande para o tipo '$type'. Máximo: {$limit['max_width']}x{$limit['max_height']}px"
-            ]);
-            exit;
+            json_error("Imagem muito grande para o tipo '$type'. Máximo: {$limit['max_width']}x{$limit['max_height']}px");
         }
     }
 
@@ -121,9 +105,7 @@ try {
     // Criar diretório se não existir
     if (!is_dir($uploadDir)) {
         if (!mkdir($uploadDir, 0755, true)) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Erro ao criar diretório de upload']);
-            exit;
+            json_error('Erro ao criar diretório de upload', 500);
         }
     }
 
@@ -136,9 +118,7 @@ try {
         $processedImage = processImage($file['tmp_name'], $mimeType, $width, $height, $limit);
         
         if ($processedImage === false) {
-            http_response_code(500);
-            echo json_encode(['success' => false, 'message' => 'Erro ao processar imagem']);
-            exit;
+            json_error('Erro ao processar imagem', 500);
         }
 
         // Salvar imagem processada
@@ -157,9 +137,7 @@ try {
     }
 
     if (!$saved) {
-        http_response_code(500);
-        echo json_encode(['success' => false, 'message' => 'Erro ao salvar arquivo']);
-        exit;
+        json_error('Erro ao salvar arquivo', 500);
     }
 
     // Log de segurança
@@ -172,7 +150,6 @@ try {
 
     // Resposta JSON padronizada
     $response = [
-        'success' => true,
         'message' => 'Arquivo enviado com sucesso',
         'filename' => $fileName,
         'mime' => $mimeType,
@@ -188,12 +165,11 @@ try {
         ];
     }
 
-    echo json_encode($response);
+    json_ok($response);
 
 } catch (Exception $e) {
     error_log("Upload error: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+    json_error('Erro interno do servidor', 500);
 }
 
 function processImage($tmpName, $mimeType, $width, $height, $limits) {

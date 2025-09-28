@@ -7,6 +7,7 @@
 // Incluir configurações unificadas
 require_once '../../config/database_hostinger.php';
 require_once '../../config/cors_unified.php';
+require_once '../../lib/response.php';
 
 // Validar método
 requireMethod('POST');
@@ -16,11 +17,11 @@ try {
     $input = json_decode(file_get_contents('php://input'), true);
     
     if (!$input) {
-        sendError('INVALID_INPUT', 'Dados inválidos');
+        json_error('Dados inválidos');
     }
     
     if (!isset($input['name']) || !isset($input['email']) || !isset($input['password'])) {
-        sendError('MISSING_FIELDS', 'Nome, email e senha são obrigatórios');
+        json_error('Nome, email e senha são obrigatórios');
     }
     
     $name = trim($input['name']);
@@ -29,27 +30,27 @@ try {
     
     // Validações
     if (empty($name) || strlen($name) < 2) {
-        sendError('INVALID_NAME', 'Nome deve ter pelo menos 2 caracteres');
+        json_error('Nome deve ter pelo menos 2 caracteres');
     }
     
     if (!$email) {
-        sendError('INVALID_EMAIL', 'Email inválido');
+        json_error('Email inválido');
     }
     
     if (strlen($password) < 8) {
-        sendError('WEAK_PASSWORD', 'Senha deve ter pelo menos 8 caracteres');
+        json_error('Senha deve ter pelo menos 8 caracteres');
     }
     
     // Validar força da senha
     if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/', $password)) {
-        sendError('WEAK_PASSWORD', 'Senha deve conter pelo menos uma letra minúscula, uma maiúscula e um número');
+        json_error('Senha deve conter pelo menos uma letra minúscula, uma maiúscula e um número');
     }
     
     // Verificar se email já existe
     $stmt = executeQuery($pdo, "SELECT id FROM users WHERE email = ?", [$email]);
     
     if ($stmt->fetch()) {
-        sendError('EMAIL_EXISTS', 'Este email já está em uso', 409);
+        json_error('Este email já está em uso', 409);
     }
     
     // Gerar token de verificação
@@ -98,14 +99,14 @@ try {
         error_log("Verification link (DEV): " . $verificationLink);
     }
     
-    sendJsonResponse(true, [
+    json_ok([
         'user_id' => (int)$userId,
         'requires_verification' => true,
         'verification_link' => !isProduction() ? $verificationLink : null
-    ], null);
+    ]);
     
 } catch (Exception $e) {
     error_log("Registration error: " . $e->getMessage());
-    sendError('INTERNAL_ERROR', 'Erro interno do servidor', 500);
+    json_error('Erro interno do servidor', 500);
 }
 ?>

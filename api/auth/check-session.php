@@ -8,6 +8,7 @@
 require_once '../../config/database_hostinger.php';
 require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
+require_once '../../lib/response.php';
 
 // Validar método
 requireMethod('GET');
@@ -19,7 +20,7 @@ try {
         // Renovar sessão se válida
         renewSession($pdo);
         
-        sendJsonResponse(true, [
+        json_ok([
             'authenticated' => true,
             'user' => [
                 'id' => (int)$user['id'],
@@ -31,7 +32,7 @@ try {
             ]
         ]);
     } else {
-        sendJsonResponse(true, [
+        json_ok([
             'authenticated' => false,
             'user' => null
         ]);
@@ -39,6 +40,6 @@ try {
 
 } catch (Exception $e) {
     error_log("Check session error: " . $e->getMessage());
-    sendError('INTERNAL_ERROR', 'Erro interno do servidor', 500);
+    json_error('Erro interno do servidor', 500);
 }
 ?>

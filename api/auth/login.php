@@ -8,6 +8,7 @@
 require_once '../../config/database_hostinger.php';
 require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
+require_once '../../lib/response.php';
 
 // Validar método
 requireMethod('POST');
@@ -17,18 +18,18 @@ try {
     $input = json_decode(file_get_contents('php://input'), true);
     
     if (!$input) {
-        sendError('INVALID_INPUT', 'Dados inválidos');
+        json_error('Dados inválidos');
     }
     
     if (!isset($input['email']) || !isset($input['password'])) {
-        sendError('MISSING_FIELDS', 'Email e senha são obrigatórios');
+        json_error('Email e senha são obrigatórios');
     }
     
     $email = filter_var(trim($input['email']), FILTER_VALIDATE_EMAIL);
     $password = $input['password'];
     
     if (!$email) {
-        sendError('INVALID_EMAIL', 'Email inválido');
+        json_error('Email inválido');
     }
     
     // Rate limiting básico por IP
@@ -38,7 +39,7 @@ try {
     
     if ($failedLogin && $failedLogin['blocked_until'] > date('Y-m-d H:i:s')) {
         logSecurityEvent($pdo, null, 'LOGIN_RATE_LIMITED', "Email: $email, IP: $ip");
-        sendError('RATE_LIMITED', 'Muitas tentativas. Tente novamente em alguns minutos.', 429);
+        json_error('Muitas tentativas. Tente novamente em alguns minutos.', 429);
     }
     
     // Buscar usuário
@@ -58,12 +59,12 @@ try {
         }
         
         logSecurityEvent($pdo, null, 'LOGIN_FAILED', "Email: $email, IP: $ip");
-        sendError('INVALID_CREDENTIALS', 'Email ou senha incorretos', 401);
+        json_error('Email ou senha incorretos', 401);
     }
     
     // Verificar email verificado (exceto para desenvolvimento e admin)
     if (!$user['email_verified'] && isProduction() && !$user['is_admin']) {
-        sendError('EMAIL_NOT_VERIFIED', 'Email não verificado. Verifique seu email antes de continuar.', 403, [
+        json_error('Email não verificado. Verifique seu email antes de continuar.', 403, [
             'requires_verification' => true
         ]);
     }
@@ -90,10 +91,10 @@ try {
         'email_verified' => (bool)$user['email_verified']
     ];
     
-    sendJsonResponse(true, ['user' => $userData]);
+    json_ok(['user' => $userData]);
 
 } catch (Exception $e) {
     error_log("Login error: " . $e->getMessage());
-    sendError('INTERNAL_ERROR', 'Erro interno do servidor', 500);
+    json_error('Erro interno do servidor', 500);
 }
 ?>
