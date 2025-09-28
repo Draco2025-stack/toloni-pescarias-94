@@ -4,6 +4,22 @@
  * Para funcionar em desenvolvimento e produção
  */
 
+// ====================================
+// LOGGING CENTRALIZADO
+// ====================================
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+
+// Criar pasta logs se não existir
+$logsDir = __DIR__ . '/../logs';
+if (!is_dir($logsDir)) {
+    mkdir($logsDir, 0755, true);
+}
+
+// Configurar arquivo de log diário
+ini_set('error_log', $logsDir . '/app-' . date('Y-m-d') . '.log');
+error_reporting(E_ALL);
+
 // Detectar ambiente
 $isProduction = (
     isset($_SERVER['HTTP_HOST']) && 
