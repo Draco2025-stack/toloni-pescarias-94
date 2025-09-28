@@ -70,15 +70,32 @@ try {
     // Log de segurança
     logSecurityEvent($pdo, $userId, 'USER_REGISTERED', "Email: $email");
     
-    // Enviar email de verificação (simulado em desenvolvimento)
-    if (isProduction()) {
-        $verificationLink = getBaseURL() . "/verify-email?token=$verificationToken";
-        // TODO: Implementar envio real de email
-        $emailSent = true; // placeholder
-    } else {
-        $verificationLink = getBaseURL() . "/verify-email?token=$verificationToken";
+    // Enviar email de verificação real
+    require_once '../../config/mail.php';
+    
+    $verificationLink = getAPIBaseURL() . '/auth/verify-email.php?token=' . $verificationToken;
+    
+    $emailHtml = "
+    <html>
+    <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+        <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+            <h2 style='color: #2563eb;'>Bem-vindo ao Toloni Pescarias, $name!</h2>
+            <p>Obrigado por se registrar em nossa plataforma.</p>
+            <p>Para ativar sua conta, clique no botão abaixo:</p>
+            <div style='text-align: center; margin: 30px 0;'>
+                <a href='$verificationLink' style='background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;'>Verificar Email</a>
+            </div>
+            <p>Ou copie e cole este link no seu navegador:</p>
+            <p style='word-break: break-all; background-color: #f3f4f6; padding: 10px; border-radius: 5px;'>$verificationLink</p>
+            <p><small>Este link é válido por 24 horas. Se você não solicitou este cadastro, ignore este email.</small></p>
+        </div>
+    </body>
+    </html>";
+    
+    $emailSent = sendEmail($email, 'Verificação de Email - Toloni Pescarias', $emailHtml, $name);
+    
+    if (!isProduction()) {
         error_log("Verification link (DEV): " . $verificationLink);
-        $emailSent = true;
     }
     
     sendJsonResponse(true, [

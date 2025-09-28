@@ -22,27 +22,29 @@ require_once '../../config/session_cookies.php';
 require_once '../../config/security.php';
 
 function sendVerificationEmail($email, $token, $name) {
+    require_once '../../config/mail.php';
+    
     $verificationLink = "https://" . $_SERVER['HTTP_HOST'] . "/api/auth/verify-email.php?token=" . $token;
     
-    $subject = "Verificação de Email - Toloni Pescarias";
-    $message = "
+    $emailHtml = "
     <html>
-    <body>
-        <h2>Olá, $name!</h2>
-        <p>Você solicitou um novo link de verificação para sua conta no Toloni Pescarias.</p>
-        <p>Para ativar sua conta, clique no link abaixo:</p>
-        <p><a href='$verificationLink'>Verificar Email</a></p>
-        <p>Este link é válido por 24 horas.</p>
-        <p>Se você não solicitou este email, ignore esta mensagem.</p>
+    <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+        <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+            <h2 style='color: #2563eb;'>Verificação de Email - Toloni Pescarias</h2>
+            <p>Olá, $name!</p>
+            <p>Você solicitou um novo link de verificação para sua conta no Toloni Pescarias.</p>
+            <p>Para ativar sua conta, clique no botão abaixo:</p>
+            <div style='text-align: center; margin: 30px 0;'>
+                <a href='$verificationLink' style='background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;'>Verificar Email</a>
+            </div>
+            <p>Ou copie e cole este link no seu navegador:</p>
+            <p style='word-break: break-all; background-color: #f3f4f6; padding: 10px; border-radius: 5px;'>$verificationLink</p>
+            <p><small>Este link é válido por 24 horas. Se você não solicitou este email, ignore esta mensagem.</small></p>
+        </div>
     </body>
-    </html>
-    ";
+    </html>";
     
-    $headers = "MIME-Version: 1.0" . "\r\n";
-    $headers .= "Content-type:text/html;charset=UTF-8" . "\r\n";
-    $headers .= "From: noreply@tolonipescarias.com" . "\r\n";
-    
-    return mail($email, $subject, $message, $headers);
+    return sendEmail($email, 'Verificação de Email - Toloni Pescarias', $emailHtml, $name);
 }
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
