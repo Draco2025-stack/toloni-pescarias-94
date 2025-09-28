@@ -4,32 +4,27 @@
 require_once '../config/database_hostinger.php';
 require_once '../config/cors_unified.php';
 require_once '../config/session_cookies.php';
+require_once '../lib/security.php';
+require_once '../lib/response.php';
 
-// Middleware para verificar autenticação
-function requireAuthentication($requireAdmin = false) {
+// Middleware para verificar autenticação com segurança avançada
+function requireAuthentication($requireAdmin = false, $endpoint = 'auth') {
     global $pdo;
+    
+    // Aplicar middleware de segurança
+    securityMiddleware($endpoint, [
+        'rate_limit' => $requireAdmin ? 30 : 60, // Menos tentativas para admin
+        'rate_window' => 1
+    ]);
     
     $user = validateSession($pdo);
     
     if (!$user) {
-        http_response_code(401);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Usuário não autenticado',
-            'redirectTo' => '/login'
-        ]);
-        exit;
+        json_error('Usuário não autenticado', 401, ['redirectTo' => '/login']);
     }
     
-    if ($requireAdmin && !$user['isAdmin']) {
-        http_response_code(403);
-        header('Content-Type: application/json');
-        echo json_encode([
-            'success' => false, 
-            'message' => 'Acesso negado - privilégios de administrador necessários'
-        ]);
-        exit;
+    if ($requireAdmin && !$user['is_admin']) {
+        json_error('Acesso negado - privilégios de administrador necessários', 403);
     }
     
     return $user;

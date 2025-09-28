@@ -1,17 +1,28 @@
 <?php
 /**
  * API de Comentários - Toloni Pescarias
- * Segue padrão do prompt-mestre
+ * Segue padrão do prompt-mestre com segurança avançada
  */
 
 // Incluir configurações unificadas
 require_once '../../config/database_hostinger.php';
 require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
+require_once '../../lib/security.php';
+require_once '../../lib/response.php';
+
+// Iniciar monitoramento de performance
+PerformanceMonitor::start();
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
     $path = $_GET['path'] ?? '';
+    
+    // Aplicar middleware de segurança
+    securityMiddleware('comments', [
+        'rate_limit' => 30, // 30 req/min para comentários
+        'rate_window' => 1
+    ]);
 
     switch ($method) {
         case 'GET':
@@ -35,14 +46,15 @@ try {
             break;
             
         default:
-            http_response_code(405);
-            echo json_encode(['success' => false, 'message' => 'Método não permitido']);
+            json_error('Método não permitido', 405);
     }
 
 } catch (Exception $e) {
     error_log("Comments API error: " . $e->getMessage());
-    http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'Erro interno do servidor']);
+    json_error('Erro interno do servidor', 500);
+} finally {
+    // Finalizar monitoramento
+    finishSecurityMonitoring('comments_api');
 }
 
 function getComments($pdo) {
@@ -104,58 +116,42 @@ function createComment($pdo) {
         // Validar autenticação
         $user = validateSession($pdo);
         if (!$user) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
-            return;
+            json_error('Usuário não autenticado', 401);
         }
         
         $input = json_decode(file_get_contents('php://input'), true);
         
         if (!$input) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
-            return;
+            json_error('Dados inválidos', 400);
         }
         
-        $report_id = (int)($input['report_id'] ?? 0);
-        $content = trim($input['content'] ?? '');
-        $parent_id = !empty($input['parent_id']) ? (int)$input['parent_id'] : null;
+        // Validação robusta com InputValidator
+        $report_id = InputValidator::validateInt($input['report_id'] ?? null);
+        $content = InputValidator::validateString($input['content'] ?? '', 1000, true);
+        $parent_id = !empty($input['parent_id']) ? InputValidator::validateInt($input['parent_id']) : null;
         
-        // Validações
-        if (empty($content)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Conteúdo do comentário é obrigatório']);
-            return;
+        if (!$report_id || !$content) {
+            json_error('Dados de entrada inválidos', 400);
         }
         
-        if (strlen($content) > 1000) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Comentário muito longo']);
-            return;
-        }
-        
-        // Verificar se o relatório existe
-        $stmt = $pdo->prepare("SELECT id FROM reports WHERE id = ?");
+        // Verificar se o relatório existe usando prepared statement seguro
+        $stmt = prepareSafeQuery($pdo, "SELECT id FROM reports WHERE id = ?");
         $stmt->execute([$report_id]);
         if (!$stmt->fetch()) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Relatório não encontrado']);
-            return;
+            json_error('Relatório não encontrado', 404);
         }
         
         // Verificar se o comentário pai existe (se fornecido)
         if ($parent_id) {
-            $stmt = $pdo->prepare("SELECT id FROM comments WHERE id = ? AND report_id = ?");
+            $stmt = prepareSafeQuery($pdo, "SELECT id FROM comments WHERE id = ? AND report_id = ?");
             $stmt->execute([$parent_id, $report_id]);
             if (!$stmt->fetch()) {
-                http_response_code(404);
-                echo json_encode(['success' => false, 'message' => 'Comentário pai não encontrado']);
-                return;
+                json_error('Comentário pai não encontrado', 404);
             }
         }
         
         // Inserir comentário
-        $stmt = $pdo->prepare("
+        $stmt = prepareSafeQuery($pdo, "
             INSERT INTO comments (report_id, user_id, parent_id, content) 
             VALUES (?, ?, ?, ?)
         ");
@@ -166,11 +162,10 @@ function createComment($pdo) {
         // Log de segurança
         logSecurityEvent($pdo, $user['id'], 'COMMENT_CREATED', "Comment ID: $comment_id, Report ID: $report_id");
         
-        echo json_encode([
-            'success' => true,
+        json_ok([
             'message' => 'Comentário adicionado com sucesso',
             'comment_id' => $comment_id
-        ]);
+        ], 201);
         
     } catch (Exception $e) {
         error_log("Create comment error: " . $e->getMessage());

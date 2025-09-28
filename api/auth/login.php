@@ -1,7 +1,7 @@
 <?php
 /**
  * API de Login - Toloni Pescarias
- * Segue padrão do prompt-mestre
+ * Segue padrão do prompt-mestre com segurança avançada
  */
 
 // Incluir configurações unificadas
@@ -9,6 +9,16 @@ require_once '../../config/database_hostinger.php';
 require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
 require_once '../../lib/response.php';
+require_once '../../lib/security.php';
+
+// Iniciar monitoramento de performance
+PerformanceMonitor::start();
+
+// Aplicar middleware de segurança
+securityMiddleware('login', [
+    'rate_limit' => 10, // Máximo 10 tentativas de login por minuto
+    'rate_window' => 1
+]);
 
 // Validar método
 requireMethod('POST');
