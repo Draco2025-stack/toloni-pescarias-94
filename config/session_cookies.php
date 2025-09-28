@@ -3,9 +3,13 @@
 
 // Configurações de cookie seguros
 function setSecureCookie($name, $value, $expires = null, $httpOnly = true, $secure = null, $sameSite = 'Lax') {
-    // Auto-detectar HTTPS se $secure não foi especificado
+    // Auto-detectar ambiente de produção
+    $isProduction = !in_array($_SERVER['HTTP_HOST'] ?? '', ['localhost', '127.0.0.1']) && 
+                    !str_contains($_SERVER['HTTP_HOST'] ?? '', 'lovable.app');
+    
+    // Forçar HTTPS em produção
     if ($secure === null) {
-        $secure = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+        $secure = $isProduction || (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on');
     }
     
     $expires = $expires ?: time() + (7 * 24 * 60 * 60); // 7 dias por padrão
@@ -13,6 +17,7 @@ function setSecureCookie($name, $value, $expires = null, $httpOnly = true, $secu
     $options = [
         'expires' => $expires,
         'path' => '/',
+        'domain' => $isProduction ? '.tolonipescarias.com.br' : null,
         'secure' => $secure,
         'httponly' => $httpOnly,
         'samesite' => $sameSite
