@@ -1,0 +1,20 @@
+# Bloquear execução de scripts PHP e similares
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .phar
+RemoveType .php .phtml .php3 .php4 .php5 .php7 .phar
+php_flag engine off
+Options -ExecCGI
+
+# Prevenir listagem de diretórios
+Options -Indexes
+
+# Permitir apenas arquivos de mídia
+<FilesMatch "^\w+\.(jpg|jpeg|png|gif|webp|mp4|mov|avi)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+# Negar acesso a outros tipos de arquivo
+<FilesMatch "^(?!\w+\.(jpg|jpeg|png|gif|webp|mp4|mov|avi)$)">
+    Order deny,allow
+    Deny from all
+</FilesMatch>
