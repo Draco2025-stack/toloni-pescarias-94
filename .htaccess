@@ -1,5 +1,11 @@
-# TOLONI PESCARIAS - CONFIGURAÇÃO FINAL
+# TOLONI PESCARIAS - CONFIGURAÇÃO FINAL PRODUÇÃO
+# =====================================================
+
 RewriteEngine On
+
+# =====================================================
+# FORÇAR HTTPS E DOMÍNIO CANÔNICO
+# =====================================================
 
 # Forçar HTTPS
 RewriteCond %{HTTPS} !=on
@@ -9,24 +15,184 @@ RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 RewriteCond %{HTTP_HOST} ^www\.tolonipescarias\.com\.br$ [NC]
 RewriteRule ^ https://tolonipescarias.com.br%{REQUEST_URI} [L,R=301]
 
-# Não reescrever a API
-RewriteRule ^api/ - [L]
+# Normalização trailing slash (SEO)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_URI} !(.*)/$
+RewriteRule ^(.*)$ https://tolonipescarias.com.br/$1/ [L,R=301]
 
-# Cabeçalhos de segurança
+# =====================================================
+# COMPRESSÃO GZIP/DEFLATE
+# =====================================================
+
+<IfModule mod_deflate.c>
+    # Comprimir HTML, CSS, JavaScript, Text, XML e fontes
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/vnd.ms-fontobject
+    AddOutputFilterByType DEFLATE application/x-font
+    AddOutputFilterByType DEFLATE application/x-font-opentype
+    AddOutputFilterByType DEFLATE application/x-font-otf
+    AddOutputFilterByType DEFLATE application/x-font-truetype
+    AddOutputFilterByType DEFLATE application/x-font-ttf
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE font/opentype
+    AddOutputFilterByType DEFLATE font/otf
+    AddOutputFilterByType DEFLATE font/ttf
+    AddOutputFilterByType DEFLATE image/svg+xml
+    AddOutputFilterByType DEFLATE image/x-icon
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
+
+# =====================================================
+# CACHE HEADERS AGRESSIVO
+# =====================================================
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Cache de 1 ano para assets com hash (JS/CSS do Vite)
+    ExpiresByType application/javascript "access plus 1 year"
+    ExpiresByType text/css "access plus 1 year"
+    
+    # Cache de 1 mês para imagens
+    ExpiresByType image/jpg "access plus 1 month"
+    ExpiresByType image/jpeg "access plus 1 month"
+    ExpiresByType image/gif "access plus 1 month"
+    ExpiresByType image/png "access plus 1 month"
+    ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    ExpiresByType image/x-icon "access plus 1 month"
+    
+    # Cache de 1 semana para fontes
+    ExpiresByType font/ttf "access plus 1 week"
+    ExpiresByType font/otf "access plus 1 week"
+    ExpiresByType font/woff "access plus 1 week"
+    ExpiresByType font/woff2 "access plus 1 week"
+    ExpiresByType application/font-woff "access plus 1 week"
+    
+    # Cache de 1 dia para HTML
+    ExpiresByType text/html "access plus 1 day"
+    
+    # Cache de 1 semana para outros assets
+    ExpiresByType application/pdf "access plus 1 week"
+    ExpiresByType text/xml "access plus 1 week"
+    ExpiresByType application/xml "access plus 1 week"
+</IfModule>
+
+# =====================================================
+# CABEÇALHOS DE SEGURANÇA AVANÇADOS
+# =====================================================
+
 <IfModule mod_headers.c>
+    # Cabeçalhos básicos de segurança
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"
     Header set Referrer-Policy "no-referrer-when-downgrade"
+    
+    # HSTS - Forçar HTTPS por 1 ano
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    
+    # Content Security Policy rigorosa
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.tolonipescarias.com.br wss: ws:; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'"
+    
+    # Permissions Policy
+    Header set Permissions-Policy "accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=()"
+    
+    # Headers de performance
+    Header set X-DNS-Prefetch-Control "on"
+    
+    # Cache control para diferentes tipos
+    <FilesMatch "\.(css|js|png|jpg|jpeg|gif|ico|svg|woff|woff2)$">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </FilesMatch>
+    
+    <FilesMatch "\.(html|htm)$">
+        Header set Cache-Control "public, max-age=86400"
+    </FilesMatch>
+    
+    # ETag para cache eficiente
+    Header unset ETag
+    FileETag None
 </IfModule>
 
-# SPA fallback
+# =====================================================
+# PROTEÇÃO DE ARQUIVOS SENSÍVEIS
+# =====================================================
+
+# Bloquear acesso a arquivos de configuração
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Bloquear arquivos específicos
+<FilesMatch "\.(env|git|htaccess|htpasswd|ini|log|sh|inc|bak|config|sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Bloquear diretórios sensíveis
+RedirectMatch 404 /\.git
+RedirectMatch 404 /\.env
+RedirectMatch 404 /config/
+RedirectMatch 404 /database/
+RedirectMatch 404 /logs/
+
+# =====================================================
+# ANTI-HOTLINKING PARA IMAGENS
+# =====================================================
+
+RewriteCond %{HTTP_REFERER} !^$
+RewriteCond %{HTTP_REFERER} !^https://(www\.)?tolonipescarias\.com\.br/ [NC]
+RewriteCond %{REQUEST_URI} \.(jpe?g|png|gif|bmp|webp)$ [NC]
+RewriteRule \.(jpe?g|png|gif|bmp|webp)$ - [F]
+
+# =====================================================
+# API E SPA ROUTING
+# =====================================================
+
+# Não reescrever a API
+RewriteRule ^api/ - [L]
+
+# Não reescrever uploads
+RewriteRule ^uploads/ - [L]
+RewriteRule ^public/ - [L]
+
+# SPA fallback - deve ser a última regra
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /index.html [L]
 
-# Proteção uploads
+# =====================================================
+# PROTEÇÃO UPLOADS AVANÇADA
+# =====================================================
+
 <IfModule mod_rewrite.c>
-    RewriteCond %{REQUEST_URI} ^/assets/uploads/.*$
-    RewriteCond %{REQUEST_FILENAME} \.(php|phtml|php3|php4|php5|pl|py|jsp|asp|sh|cgi)$ [NC]
+    # Bloquear execução de scripts em uploads
+    RewriteCond %{REQUEST_URI} ^/(uploads|public)/.*$
+    RewriteCond %{REQUEST_FILENAME} \.(php|phtml|php3|php4|php5|php7|pl|py|jsp|asp|sh|cgi|exe|bat)$ [NC]
     RewriteRule .* - [F,L]
 </IfModule>
+
+# =====================================================
+# CONFIGURAÇÕES GERAIS
+# =====================================================
+
+# Charset UTF-8
+AddDefaultCharset UTF-8
+
+# Desabilitar server signature
+ServerSignature Off
+
+# Custom error pages (opcional)
+ErrorDocument 404 /index.html
+ErrorDocument 403 /index.html
+ErrorDocument 500 /index.html
