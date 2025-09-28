@@ -1,7 +1,8 @@
 <?php
 // Middleware de autenticação para proteger endpoints
 
-require_once '../config/database.php';
+require_once '../config/database_hostinger.php';
+require_once '../config/cors_unified.php';
 require_once '../config/session_cookies.php';
 
 // Middleware para verificar autenticação

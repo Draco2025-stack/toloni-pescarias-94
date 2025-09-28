@@ -24,8 +24,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-require_once '../../config/database.php';
-require_once '../../config/security.php';
+require_once '../../config/database_hostinger.php';
+require_once '../../config/cors_unified.php';
+require_once '../../config/session_cookies.php';
 
 try {
     // Validar autenticação de admin

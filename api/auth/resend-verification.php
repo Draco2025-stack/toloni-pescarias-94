@@ -17,9 +17,9 @@ register_shutdown_function(function() {
     }
 });
 
-require_once '../../config/database.php';
+require_once '../../config/database_hostinger.php';
+require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
-require_once '../../config/security.php';
 
 function sendVerificationEmail($email, $token, $name) {
     require_once '../../config/mail.php';

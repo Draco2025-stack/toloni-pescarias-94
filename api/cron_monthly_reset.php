@@ -26,7 +26,9 @@ if (isset($_SERVER['HTTP_HOST'])) {
 
 try {
     // Incluir configuração do banco
-    require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/database_hostinger.php';
+require_once __DIR__ . '/../config/cors_unified.php';
+require_once __DIR__ . '/../config/session_cookies.php';
     
     // Log de início
     error_log('[' . date('Y-m-d H:i:s') . '] Iniciando reset mensal dos troféus...');

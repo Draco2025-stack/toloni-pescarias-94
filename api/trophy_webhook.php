@@ -4,8 +4,9 @@
  * Processa eventos de criação, atualização e deleção de relatos
  */
 
-require_once '../config/database.php';
-require_once '../config/security.php';
+require_once '../config/database_hostinger.php';
+require_once '../config/cors_unified.php';
+require_once '../config/session_cookies.php';
 
 // Configuração de logs
 ini_set('log_errors', 1);

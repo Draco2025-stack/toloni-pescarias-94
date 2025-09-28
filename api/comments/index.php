@@ -7,6 +7,7 @@
 // Incluir configurações unificadas
 require_once '../../config/database_hostinger.php';
 require_once '../../config/cors_unified.php';
+require_once '../../config/session_cookies.php';
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];

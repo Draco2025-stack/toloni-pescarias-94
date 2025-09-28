@@ -25,7 +25,9 @@ if (isset($_SERVER['HTTP_HOST'])) {
 
 try {
     // Incluir configuração do banco
-    require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/database_hostinger.php';
+require_once __DIR__ . '/../config/cors_unified.php';
+require_once __DIR__ . '/../config/session_cookies.php';
     
     // Definir diretório de backup
     $backupDir = __DIR__ . '/../backups';

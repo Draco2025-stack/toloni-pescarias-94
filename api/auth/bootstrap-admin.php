@@ -9,9 +9,9 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
-require_once '../../config/database.php';
-require_once '../../config/admin_config.php';
-require_once '../../config/security.php';
+require_once '../../config/database_hostinger.php';
+require_once '../../config/cors_unified.php';
+require_once '../../config/session_cookies.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
