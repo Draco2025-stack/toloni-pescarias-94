@@ -8,6 +8,8 @@
 require_once '../../config/database_hostinger.php';
 require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
+require_once '../../config/roles_system.php';
+require_once '../../lib/security_audit.php';
 
 try {
     $method = $_SERVER['REQUEST_METHOD'];
@@ -188,48 +190,33 @@ function getLocation($pdo, $id) {
 
 function createLocation($pdo) {
     try {
-        // Validar autenticação
-        $user = validateSession($pdo);
-        if (!$user) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
-            return;
-        }
+        // Validar autenticação com novo sistema de roles
+        $user = requireRole($pdo, 'USER', 'create_location');
         
         $input = json_decode(file_get_contents('php://input'), true);
         
         if (!$input) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
-            return;
+            json_error('Dados inválidos', 400);
         }
         
-        // Validações
-        $name = trim($input['name'] ?? '');
-        $description = trim($input['description'] ?? '');
-        $city = trim($input['city'] ?? '');
-        $state = trim($input['state'] ?? '');
+        // Validações com InputValidator
+        $name = InputValidator::validateString($input['name'] ?? '', 150, true);
+        $description = InputValidator::validateString($input['description'] ?? '', 2000, false);
+        $city = InputValidator::validateString($input['city'] ?? '', 100, true);
+        $state = InputValidator::validateString($input['state'] ?? '', 50, true);
         
-        if (empty($name) || empty($city) || empty($state)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Nome, cidade e estado são obrigatórios']);
-            return;
+        if (!$name || !$city || !$state) {
+            json_error('Nome, cidade e estado são obrigatórios', 400);
         }
         
-        if (strlen($name) > 150) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Nome muito longo']);
-            return;
-        }
-        
-        $latitude = !empty($input['latitude']) ? (float)$input['latitude'] : null;
-        $longitude = !empty($input['longitude']) ? (float)$input['longitude'] : null;
-        $address = trim($input['address'] ?? '');
-        $country = trim($input['country'] ?? 'Brasil');
-        $featured_image = trim($input['featured_image'] ?? '');
-        $images = $input['images'] ?? [];
-        $fish_species = $input['fish_species'] ?? [];
-        $facilities = $input['facilities'] ?? [];
+        $latitude = !empty($input['latitude']) ? InputValidator::validateFloat($input['latitude']) : null;
+        $longitude = !empty($input['longitude']) ? InputValidator::validateFloat($input['longitude']) : null;
+        $address = InputValidator::validateString($input['address'] ?? '', 255, false);
+        $country = InputValidator::validateString($input['country'] ?? 'Brasil', 100, false) ?: 'Brasil';
+        $featured_image = InputValidator::validateString($input['featured_image'] ?? '', 255, false);
+        $images = InputValidator::validateArray($input['images'] ?? [], 10);
+        $fish_species = InputValidator::validateArray($input['fish_species'] ?? [], 20);
+        $facilities = InputValidator::validateArray($input['facilities'] ?? [], 15);
         $difficulty_level = $input['difficulty_level'] ?? 'moderado';
         $access_type = $input['access_type'] ?? 'publico';
         
@@ -244,9 +231,9 @@ function createLocation($pdo) {
             $access_type = 'publico';
         }
         
-        // Determinar se deve ser aprovado automaticamente (admins)
-        $is_approved = $user['is_admin'] ? 1 : 0;
-        $approved_by = $user['is_admin'] ? $user['id'] : null;
+        // Determinar se deve ser aprovado automaticamente
+        $is_approved = hasRole($user, 'EDITOR') ? 1 : 0;
+        $approved_by = $is_approved ? $user['id'] : null;
         
         // Inserir localização
         $stmt = $pdo->prepare("
@@ -267,16 +254,18 @@ function createLocation($pdo) {
         $location_id = $pdo->lastInsertId();
         
         // Log de segurança
-        logSecurityEvent($pdo, $user['id'], 'LOCATION_CREATED', "Location ID: $location_id");
+        logSecurityAction($pdo, $user, 'LOCATION_CREATED', 
+            ['type' => 'location', 'id' => $location_id], 
+            ['auto_approved' => $is_approved, 'city' => $city, 'state' => $state]
+        );
         
         $message = $is_approved ? 'Localização criada e aprovada com sucesso' : 'Localização sugerida com sucesso e será avaliada pelos administradores';
         
-        echo json_encode([
-            'success' => true,
+        json_ok([
             'message' => $message,
             'location_id' => $location_id,
             'is_approved' => $is_approved
-        ]);
+        ], 201);
         
     } catch (Exception $e) {
         error_log("Create location error: " . $e->getMessage());
@@ -286,38 +275,13 @@ function createLocation($pdo) {
 
 function updateLocation($pdo, $id) {
     try {
-        // Validar autenticação
-        $user = validateSession($pdo);
-        if (!$user) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
-            return;
-        }
-        
-        // Verificar se a localização existe
-        $stmt = $pdo->prepare("SELECT suggested_by FROM locations WHERE id = ?");
-        $stmt->execute([$id]);
-        $location = $stmt->fetch();
-        
-        if (!$location) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Localização não encontrada']);
-            return;
-        }
-        
-        // Verificar permissões
-        if ($location['suggested_by'] !== $user['id'] && !$user['is_admin']) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Sem permissão para editar esta localização']);
-            return;
-        }
+        // Verificar ownership ou role de editor
+        $user = requireOwnershipOrRole($pdo, 'location', $id, 'EDITOR', 'update_location');
         
         $input = json_decode(file_get_contents('php://input'), true);
         
         if (!$input) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
-            return;
+            json_error('Dados inválidos', 400);
         }
         
         // Atualizar campos permitidos
@@ -325,23 +289,22 @@ function updateLocation($pdo, $id) {
         $params = [];
         
         if (isset($input['name'])) {
-            $name = trim($input['name']);
-            if (empty($name) || strlen($name) > 150) {
-                http_response_code(400);
-                echo json_encode(['success' => false, 'message' => 'Nome inválido']);
-                return;
+            $name = InputValidator::validateString($input['name'], 150, true);
+            if (!$name) {
+                json_error('Nome inválido', 400);
             }
             $updates[] = "name = ?";
             $params[] = $name;
         }
         
         if (isset($input['description'])) {
+            $description = InputValidator::validateString($input['description'], 2000, false);
             $updates[] = "description = ?";
-            $params[] = trim($input['description']);
+            $params[] = $description;
         }
         
-        // Campos específicos para admins
-        if ($user['is_admin']) {
+        // Campos específicos para editores/admins
+        if (hasRole($user, 'EDITOR')) {
             if (isset($input['is_approved'])) {
                 $updates[] = "is_approved = ?";
                 $params[] = (bool)$input['is_approved'];
@@ -359,9 +322,7 @@ function updateLocation($pdo, $id) {
         }
         
         if (empty($updates)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Nenhum campo para atualizar']);
-            return;
+            json_error('Nenhum campo para atualizar', 400);
         }
         
         $updates[] = "updated_at = CURRENT_TIMESTAMP";
@@ -372,12 +333,12 @@ function updateLocation($pdo, $id) {
         $stmt->execute($params);
         
         // Log de segurança
-        logSecurityEvent($pdo, $user['id'], 'LOCATION_UPDATED', "Location ID: $id");
+        logSecurityAction($pdo, $user, 'LOCATION_UPDATED', 
+            ['type' => 'location', 'id' => $id], 
+            ['fields_updated' => array_keys($input)]
+        );
         
-        echo json_encode([
-            'success' => true,
-            'message' => 'Localização atualizada com sucesso'
-        ]);
+        json_ok(['message' => 'Localização atualizada com sucesso']);
         
     } catch (Exception $e) {
         error_log("Update location error: " . $e->getMessage());
@@ -387,13 +348,8 @@ function updateLocation($pdo, $id) {
 
 function deleteLocation($pdo, $id) {
     try {
-        // Validar autenticação (apenas admins podem excluir)
-        $user = validateSession($pdo);
-        if (!$user || !$user['is_admin']) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Sem permissão para excluir localizações']);
-            return;
-        }
+        // Apenas editores e admins podem excluir
+        $user = requireRole($pdo, 'EDITOR', 'delete_location');
         
         // Verificar se existem relatórios vinculados
         $stmt = $pdo->prepare("SELECT COUNT(*) FROM reports WHERE location_id = ?");
@@ -401,9 +357,7 @@ function deleteLocation($pdo, $id) {
         $reports_count = $stmt->fetchColumn();
         
         if ($reports_count > 0) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Não é possível excluir localização com relatórios vinculados']);
-            return;
+            json_error('Não é possível excluir localização com relatórios vinculados', 400);
         }
         
         // Excluir localização
@@ -411,18 +365,16 @@ function deleteLocation($pdo, $id) {
         $stmt->execute([$id]);
         
         if ($stmt->rowCount() === 0) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Localização não encontrada']);
-            return;
+            json_error('Localização não encontrada', 404);
         }
         
         // Log de segurança
-        logSecurityEvent($pdo, $user['id'], 'LOCATION_DELETED', "Location ID: $id");
+        logSecurityAction($pdo, $user, 'LOCATION_DELETED', 
+            ['type' => 'location', 'id' => $id], 
+            ['reports_count' => $reports_count]
+        );
         
-        echo json_encode([
-            'success' => true,
-            'message' => 'Localização excluída com sucesso'
-        ]);
+        json_ok(['message' => 'Localização excluída com sucesso']);
         
     } catch (Exception $e) {
         error_log("Delete location error: " . $e->getMessage());

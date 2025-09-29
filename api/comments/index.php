@@ -8,7 +8,9 @@
 require_once '../../config/database_hostinger.php';
 require_once '../../config/cors_unified.php';
 require_once '../../config/session_cookies.php';
+require_once '../../config/roles_system.php';
 require_once '../../lib/security.php';
+require_once '../../lib/security_audit.php';
 require_once '../../lib/response.php';
 
 // Iniciar monitoramento de performance
@@ -113,11 +115,8 @@ function getComments($pdo) {
 
 function createComment($pdo) {
     try {
-        // Validar autenticação
-        $user = validateSession($pdo);
-        if (!$user) {
-            json_error('Usuário não autenticado', 401);
-        }
+        // Validar autenticação com novo sistema de roles
+        $user = requireRole($pdo, 'USER', 'create_comment');
         
         $input = json_decode(file_get_contents('php://input'), true);
         
@@ -159,8 +158,11 @@ function createComment($pdo) {
         
         $comment_id = $pdo->lastInsertId();
         
-        // Log de segurança
-        logSecurityEvent($pdo, $user['id'], 'COMMENT_CREATED', "Comment ID: $comment_id, Report ID: $report_id");
+        // Log de segurança com novo sistema
+        logSecurityAction($pdo, $user, 'COMMENT_CREATED', 
+            ['type' => 'comment', 'id' => $comment_id], 
+            ['report_id' => $report_id, 'parent_id' => $parent_id]
+        );
         
         json_ok([
             'message' => 'Comentário adicionado com sucesso',
@@ -175,51 +177,19 @@ function createComment($pdo) {
 
 function updateComment($pdo, $id) {
     try {
-        // Validar autenticação
-        $user = validateSession($pdo);
-        if (!$user) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
-            return;
-        }
-        
-        // Verificar se o comentário existe e pertence ao usuário
-        $stmt = $pdo->prepare("SELECT user_id FROM comments WHERE id = ?");
-        $stmt->execute([$id]);
-        $comment = $stmt->fetch();
-        
-        if (!$comment) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Comentário não encontrado']);
-            return;
-        }
-        
-        if ($comment['user_id'] !== $user['id'] && !$user['is_admin']) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Sem permissão para editar este comentário']);
-            return;
-        }
+        // Verificar ownership ou role de moderador
+        $user = requireOwnershipOrRole($pdo, 'comment', $id, 'MODERATOR', 'update_comment');
         
         $input = json_decode(file_get_contents('php://input'), true);
         
         if (!$input) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Dados inválidos']);
-            return;
+            json_error('Dados inválidos', 400);
         }
         
-        $content = trim($input['content'] ?? '');
+        $content = InputValidator::validateString($input['content'] ?? '', 1000, true);
         
-        if (empty($content)) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Conteúdo do comentário é obrigatório']);
-            return;
-        }
-        
-        if (strlen($content) > 1000) {
-            http_response_code(400);
-            echo json_encode(['success' => false, 'message' => 'Comentário muito longo']);
-            return;
+        if (!$content) {
+            json_error('Conteúdo do comentário é obrigatório', 400);
         }
         
         // Atualizar comentário
@@ -231,12 +201,12 @@ function updateComment($pdo, $id) {
         $stmt->execute([$content, $id]);
         
         // Log de segurança
-        logSecurityEvent($pdo, $user['id'], 'COMMENT_UPDATED', "Comment ID: $id");
+        logSecurityAction($pdo, $user, 'COMMENT_UPDATED', 
+            ['type' => 'comment', 'id' => $id], 
+            ['new_content_length' => strlen($content)]
+        );
         
-        echo json_encode([
-            'success' => true,
-            'message' => 'Comentário atualizado com sucesso'
-        ]);
+        json_ok(['message' => 'Comentário atualizado com sucesso']);
         
     } catch (Exception $e) {
         error_log("Update comment error: " . $e->getMessage());
@@ -246,42 +216,20 @@ function updateComment($pdo, $id) {
 
 function deleteComment($pdo, $id) {
     try {
-        // Validar autenticação
-        $user = validateSession($pdo);
-        if (!$user) {
-            http_response_code(401);
-            echo json_encode(['success' => false, 'message' => 'Usuário não autenticado']);
-            return;
-        }
-        
-        // Verificar se o comentário existe e pertence ao usuário
-        $stmt = $pdo->prepare("SELECT user_id FROM comments WHERE id = ?");
-        $stmt->execute([$id]);
-        $comment = $stmt->fetch();
-        
-        if (!$comment) {
-            http_response_code(404);
-            echo json_encode(['success' => false, 'message' => 'Comentário não encontrado']);
-            return;
-        }
-        
-        if ($comment['user_id'] !== $user['id'] && !$user['is_admin']) {
-            http_response_code(403);
-            echo json_encode(['success' => false, 'message' => 'Sem permissão para excluir este comentário']);
-            return;
-        }
+        // Verificar ownership ou role de moderador
+        $user = requireOwnershipOrRole($pdo, 'comment', $id, 'MODERATOR', 'delete_comment');
         
         // Excluir comentário (cascade vai excluir respostas)
         $stmt = $pdo->prepare("DELETE FROM comments WHERE id = ?");
         $stmt->execute([$id]);
         
         // Log de segurança
-        logSecurityEvent($pdo, $user['id'], 'COMMENT_DELETED', "Comment ID: $id");
+        logSecurityAction($pdo, $user, 'COMMENT_DELETED', 
+            ['type' => 'comment', 'id' => $id], 
+            ['deleted_cascaded' => true]
+        );
         
-        echo json_encode([
-            'success' => true,
-            'message' => 'Comentário excluído com sucesso'
-        ]);
+        json_ok(['message' => 'Comentário excluído com sucesso']);
         
     } catch (Exception $e) {
         error_log("Delete comment error: " . $e->getMessage());
