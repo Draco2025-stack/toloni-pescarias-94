@@ -97,9 +97,10 @@ function getEnvironmentConfig() {
         'smtp_from_email' => getEnvOrDefault('SMTP_FROM_EMAIL', 'noreply@tolonipescarias.com.br'),
         'smtp_from_name' => getEnvOrDefault('SMTP_FROM_NAME', 'Toloni Pescarias'),
         
-        // Security
-        'jwt_secret' => getEnvOrDefault('JWT_SECRET', 'change-this-in-production'),
-        'encryption_key' => getEnvOrDefault('ENCRYPTION_KEY', 'change-this-in-production'),
+        // Security - MUST be set in .env file
+        'jwt_secret' => getEnvOrDefault('JWT_SECRET'),
+        'encryption_key' => getEnvOrDefault('ENCRYPTION_KEY'),
+        'password_salt' => getEnvOrDefault('PASSWORD_SALT'),
         
         // Upload
         'upload_max_size' => (int)getEnvOrDefault('UPLOAD_MAX_SIZE', '10485760'), // 10MB
@@ -110,8 +111,8 @@ function getEnvironmentConfig() {
         'cookie_domain' => getEnvOrDefault('COOKIE_DOMAIN', $isProduction ? '.tolonipescarias.com.br' : ''),
         'cookie_secure' => $isProduction,
         
-        // Admin
-        'admin_email' => getEnvOrDefault('ADMIN_EMAIL', 'admin@tolonipescarias.com.br'),
+        // Admin email (via .env)
+        'admin_email' => getEnvOrDefault('ADMIN_EMAIL', 'admin@example.com'),
         
         // Paths
         'upload_path' => getEnvOrDefault('UPLOAD_PATH', __DIR__ . '/../uploads'),

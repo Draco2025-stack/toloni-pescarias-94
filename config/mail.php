@@ -28,11 +28,11 @@ function mailer(): PHPMailer {
     $m->Port = (int) getEnvOrDefault('SMTP_PORT', '465');
     $m->SMTPAuth = true;
     $m->SMTPSecure = getEnvOrDefault('SMTP_SECURE', 'ssl'); // 'ssl' (465) ou 'tls' (587)
-    $m->Username = getEnvOrDefault('SMTP_USER', 'noreply@tolonipescarias.com.br');
-    $m->Password = getEnvOrDefault('SMTP_PASS', '');
+    $m->Username = getEnvOrDefault('SMTP_USERNAME', 'noreply@tolonipescarias.com.br');
+    $m->Password = getEnvOrDefault('SMTP_PASSWORD', '');
     $m->CharSet  = 'UTF-8';
     $m->setFrom(
-        getEnvOrDefault('SMTP_FROM', 'noreply@tolonipescarias.com.br'),
+        getEnvOrDefault('SMTP_FROM_EMAIL', 'noreply@tolonipescarias.com.br'),
         getEnvOrDefault('SMTP_FROM_NAME', 'Toloni Pescarias')
     );
     return $m;

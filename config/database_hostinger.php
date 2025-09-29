@@ -1,8 +1,10 @@
 <?php
 /**
  * Configuração de banco de dados unificada para Hostinger
- * Detecta automaticamente ambiente (desenvolvimento/produção)
+ * Detecta automaticamente ambiente e carrega credenciais do .env
  */
+
+require_once __DIR__ . '/environment.php';
 
 // Detectar ambiente baseado no domínio
 $isProduction = (
@@ -13,13 +15,13 @@ $isProduction = (
 
 if ($isProduction) {
     // ====================================
-    // PRODUÇÃO - HOSTINGER
+    // PRODUÇÃO - HOSTINGER (via .env)
     // ====================================
-    define('DB_HOST', 'localhost');
-    define('DB_NAME', 'u123456789_toloni');    // ALTERAR: nome real do banco
-    define('DB_USER', 'u123456789_user');      // ALTERAR: usuário real  
-    define('DB_PASS', 'SuaSenhaSegura123!');   // ALTERAR: senha real
-    define('DB_CHARSET', 'utf8mb4');
+    define('DB_HOST', getEnvOrDefault('DB_HOST', 'localhost'));
+    define('DB_NAME', getEnvOrDefault('DB_NAME'));
+    define('DB_USER', getEnvOrDefault('DB_USER'));
+    define('DB_PASS', getEnvOrDefault('DB_PASS'));
+    define('DB_CHARSET', getEnvOrDefault('DB_CHARSET', 'utf8mb4'));
     
     // URLs de produção
     define('SITE_URL', 'https://tolonipescarias.com.br');
@@ -27,13 +29,13 @@ if ($isProduction) {
     
 } else {
     // ====================================
-    // DESENVOLVIMENTO
+    // DESENVOLVIMENTO (via .env)
     // ====================================
-    define('DB_HOST', 'localhost');
-    define('DB_NAME', 'toloni_pescarias');
-    define('DB_USER', 'root');
-    define('DB_PASS', '');
-    define('DB_CHARSET', 'utf8mb4');
+    define('DB_HOST', getEnvOrDefault('DB_HOST', 'localhost'));
+    define('DB_NAME', getEnvOrDefault('DB_NAME', 'toloni_pescarias'));
+    define('DB_USER', getEnvOrDefault('DB_USER', 'root'));
+    define('DB_PASS', getEnvOrDefault('DB_PASS', ''));
+    define('DB_CHARSET', getEnvOrDefault('DB_CHARSET', 'utf8mb4'));
     
     // URLs de desenvolvimento
     define('SITE_URL', 'http://localhost:8080');

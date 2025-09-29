@@ -17,7 +17,7 @@ const Footer = () => {
         const featured = locations.filter(loc => loc.featured);
         setPopularLocations(featured.length > 0 ? featured : locations.slice(0, 5));
       } catch (error) {
-        console.error("Error fetching locations for footer:", error);
+        // Log de erro sem informações sensíveis
       }
     };
 
@@ -29,7 +29,7 @@ const Footer = () => {
     const phoneNumber = "5511972225982";
     
     try {
-      console.log("Tentando abrir WhatsApp...");
+      // Detectar dispositivo móvel
       
       // Detectar se é mobile ou desktop
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);

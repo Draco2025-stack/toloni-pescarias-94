@@ -1,13 +1,11 @@
 <?php
 // Configurações específicas para produção na Hostinger
-// Este arquivo deve ser ajustado com as credenciais reais da Hostinger
+// DEPRECADO: Use config/environment.php e .env em vez deste arquivo
 
-// Configurações de banco de dados para Hostinger
-define('HOSTINGER_DB_HOST', 'localhost');
-define('HOSTINGER_DB_NAME', 'u123456789_toloni'); // Ajustar com o nome real do banco
-define('HOSTINGER_DB_USER', 'u123456789_user');   // Ajustar com o usuário real
-define('HOSTINGER_DB_PASS', 'SuaSenhaSegura123'); // Ajustar com a senha real
-define('HOSTINGER_DB_CHARSET', 'utf8mb4');
+require_once __DIR__ . '/environment.php';
+
+// Todas as configurações agora são carregadas via variáveis de ambiente
+// Veja .env.example para a lista completa de variáveis necessárias
 
 // Configurações de segurança para produção
 define('PRODUCTION_MODE', true);
