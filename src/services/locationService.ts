@@ -1,24 +1,7 @@
 // Serviço para gerenciar localidades de pesca - APIs Reais
 
-// Detectar ambiente e configurar API base  
-const getApiBaseUrl = (): string => {
-  const hostname = window.location.hostname;
-  
-  // Produção Hostinger - Detecção robusta
-  if (hostname.includes('tolonipescarias.com.br') || 
-      hostname.includes('tolonipescarias.com') ||
-      (window.location.protocol === 'https:' && hostname !== 'localhost' && !hostname.includes('lovable.app'))) {
-    return `https://${hostname}/api`;
-  }
-  
-  // Desenvolvimento local
-  if (hostname === 'localhost' || hostname.startsWith('127.0.0.1')) {
-    return '/api';
-  }
-  
-  // Fallback para outros ambientes
-  return '/api';
-};
+import { getApiBaseUrl } from '@/utils/apiConfig';
+import { safeLogger } from '@/utils/logging';
 
 const API_BASE = getApiBaseUrl();
 
@@ -77,7 +60,7 @@ export const getLocations = async (): Promise<Location[]> => {
 
     return data.locations || [];
   } catch (error) {
-    console.error('Erro ao buscar localidades:', error);
+    safeLogger.error('Erro ao buscar localidades:', error);
     return [];
   }
 };
@@ -101,7 +84,7 @@ export const getLocation = async (id: string): Promise<Location | null> => {
 
     return data.location || null;
   } catch (error) {
-    console.error('Erro ao buscar localidade:', error);
+    safeLogger.error('Erro ao buscar localidade:', error);
     return null;
   }
 };
@@ -125,7 +108,7 @@ export const getFeaturedLocations = async (): Promise<Location[]> => {
 
     return data.locations || [];
   } catch (error) {
-    console.error('Erro ao buscar localidades em destaque:', error);
+    safeLogger.error('Erro ao buscar localidades em destaque:', error);
     return [];
   }
 };
@@ -170,7 +153,7 @@ export const createLocation = async (locationData: CreateLocationData): Promise<
       message: data.message
     };
   } catch (error) {
-    console.error('Erro ao criar localidade:', error);
+    safeLogger.error('Erro ao criar localidade:', error);
     return {
       success: false,
       message: 'Erro interno do servidor'
@@ -200,7 +183,7 @@ export const updateLocation = async (id: string, locationData: Partial<CreateLoc
       message: data.message
     };
   } catch (error) {
-    console.error('Erro ao atualizar localidade:', error);
+    safeLogger.error('Erro ao atualizar localidade:', error);
     return {
       success: false,
       message: 'Erro interno do servidor'
@@ -229,7 +212,7 @@ export const deleteLocation = async (id: string): Promise<{ success: boolean; me
       message: data.message
     };
   } catch (error) {
-    console.error('Erro ao deletar localidade:', error);
+    safeLogger.error('Erro ao deletar localidade:', error);
     return {
       success: false,
       message: 'Erro interno do servidor'
@@ -256,7 +239,7 @@ export const searchLocations = async (query: string): Promise<Location[]> => {
 
     return data.locations || [];
   } catch (error) {
-    console.error('Erro ao buscar localidades:', error);
+    safeLogger.error('Erro ao buscar localidades:', error);
     return [];
   }
 };

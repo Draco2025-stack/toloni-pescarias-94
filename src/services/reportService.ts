@@ -1,24 +1,7 @@
 // Serviço para gerenciar relatórios de pesca - APIs Reais
 
-// Detectar ambiente e configurar API base
-const getApiBaseUrl = (): string => {
-  const hostname = window.location.hostname;
-  
-  // Produção Hostinger - Detecção robusta
-  if (hostname.includes('tolonipescarias.com.br') || 
-      hostname.includes('tolonipescarias.com') ||
-      (window.location.protocol === 'https:' && hostname !== 'localhost' && !hostname.includes('lovable.app'))) {
-    return `https://${hostname}/api`;
-  }
-  
-  // Desenvolvimento local
-  if (hostname === 'localhost' || hostname.startsWith('127.0.0.1')) {
-    return '/api';
-  }
-  
-  // Fallback para outros ambientes
-  return '/api';
-};
+import { getApiBaseUrl } from '@/utils/apiConfig';
+import { safeLogger } from '@/utils/logging';
 
 const API_BASE = getApiBaseUrl();
 
@@ -86,7 +69,7 @@ export const getAllReports = async (): Promise<Report[]> => {
 
     return data.reports || [];
   } catch (error) {
-    console.error('Erro ao buscar relatórios:', error);
+    safeLogger.error('Erro ao buscar relatórios:', error);
     return [];
   }
 };
@@ -110,7 +93,7 @@ export const getReportsByLocation = async (locationId: string): Promise<Report[]
 
     return data.reports || [];
   } catch (error) {
-    console.error('Erro ao buscar relatórios por localização:', error);
+    safeLogger.error('Erro ao buscar relatórios por localização:', error);
     return [];
   }
 };
@@ -138,7 +121,7 @@ export const getReportsByUser = async (userId?: string): Promise<Report[]> => {
 
     return data.reports || [];
   } catch (error) {
-    console.error('Erro ao buscar relatórios do usuário:', error);
+    safeLogger.error('Erro ao buscar relatórios do usuário:', error);
     return [];
   }
 };
@@ -162,7 +145,7 @@ export const getReport = async (id: string): Promise<Report | null> => {
 
     return data.report || null;
   } catch (error) {
-    console.error('Erro ao buscar relatório:', error);
+    safeLogger.error('Erro ao buscar relatório:', error);
     return null;
   }
 };
@@ -205,7 +188,7 @@ export const createReport = async (reportData: CreateReportData): Promise<{ succ
       message: data.message
     };
   } catch (error) {
-    console.error('Erro ao criar relatório:', error);
+    safeLogger.error('Erro ao criar relatório:', error);
     return {
       success: false,
       message: 'Erro interno do servidor'
@@ -235,7 +218,7 @@ export const updateReport = async (id: string, reportData: UpdateReportData): Pr
       message: data.message
     };
   } catch (error) {
-    console.error('Erro ao atualizar relatório:', error);
+    safeLogger.error('Erro ao atualizar relatório:', error);
     return {
       success: false,
       message: 'Erro interno do servidor'
@@ -264,7 +247,7 @@ export const deleteReport = async (id: string): Promise<{ success: boolean; mess
       message: data.message
     };
   } catch (error) {
-    console.error('Erro ao deletar relatório:', error);
+    safeLogger.error('Erro ao deletar relatório:', error);
     return {
       success: false,
       message: 'Erro interno do servidor'
@@ -295,7 +278,7 @@ export const toggleReportLike = async (id: string): Promise<{ success: boolean; 
       likes_count: data.likes_count || 0
     };
   } catch (error) {
-    console.error('Erro ao curtir/descurtir relatório:', error);
+    safeLogger.error('Erro ao curtir/descurtir relatório:', error);
     return {
       success: false,
       liked: false,

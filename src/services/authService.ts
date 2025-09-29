@@ -21,25 +21,8 @@ export interface AuthResponse {
   authenticated?: boolean;
 }
 
-// Detectar ambiente e configurar API base
-const getApiBaseUrl = (): string => {
-  const hostname = window.location.hostname;
-  
-  // Produção Hostinger - Detecção robusta
-  if (hostname.includes('tolonipescarias.com.br') || 
-      hostname.includes('tolonipescarias.com') ||
-      (window.location.protocol === 'https:' && hostname !== 'localhost' && !hostname.includes('lovable.app'))) {
-    return `https://${hostname}/api`;
-  }
-  
-  // Desenvolvimento local
-  if (hostname === 'localhost' || hostname.startsWith('127.0.0.1')) {
-    return '/api';
-  }
-  
-  // Fallback para outros ambientes (Lovable preview, etc)
-  return '/api';
-};
+import { getApiBaseUrl } from '@/utils/apiConfig';
+import { safeLogger } from '@/utils/logging';
 
 // Serviço de autenticação
 export class AuthService {
@@ -67,7 +50,7 @@ export class AuthService {
 
       return data;
     } catch (error) {
-      console.error('API call failed:', error);
+      safeLogger.error('API call failed:', error);
       return {
         success: false,
         error: { code: 'NETWORK_ERROR', message: 'Erro de conexão com o servidor' }

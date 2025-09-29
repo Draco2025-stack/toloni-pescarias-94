@@ -1,22 +1,5 @@
-// Detectar ambiente de forma robusta  
-const getApiBaseUrl = (): string => {
-  const hostname = window.location.hostname;
-  
-  // Produção Hostinger
-  if (hostname.includes('tolonipescarias.com.br') || 
-      hostname.includes('tolonipescarias.com') ||
-      (window.location.protocol === 'https:' && hostname !== 'localhost' && !hostname.includes('lovable.app'))) {
-    return `https://${hostname}`;
-  }
-  
-  // Desenvolvimento local
-  if (hostname === 'localhost' || hostname.startsWith('127.0.0.1')) {
-    return window.location.origin;
-  }
-  
-  // Fallback
-  return window.location.origin;
-};
+import { getApiBaseUrl } from '@/utils/apiConfig';
+import { safeLogger } from '@/utils/logging';
 
 const API_BASE = getApiBaseUrl();
 
@@ -51,7 +34,7 @@ export const toggleLike = async (targetType: 'report' | 'comment', targetId: str
       message: data.error?.message || data.message
     };
   } catch (error) {
-    console.error('Erro ao curtir/descurtir:', error);
+    safeLogger.error('Erro ao curtir/descurtir:', error);
     return {
       success: false,
       liked: false,

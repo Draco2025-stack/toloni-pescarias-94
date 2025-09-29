@@ -40,7 +40,7 @@ const CommentForm = ({ reportId, onCommentAdded }: CommentFormProps) => {
       setContent("");
       onCommentAdded();
     } catch (error) {
-      console.error("Error creating comment:", error);
+      // Não loggar error completo por segurança, apenas mostrar toast ao usuário
       toast.error(error instanceof Error ? error.message : "Erro ao adicionar comentário");
     } finally {
       setIsSubmitting(false);

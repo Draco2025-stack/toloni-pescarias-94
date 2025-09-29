@@ -1,7 +1,8 @@
 // Serviço para gerenciar comentários
-const API_BASE = import.meta.env.DEV 
-  ? 'http://localhost:8080' 
-  : 'https://tolonipescarias.com.br';
+import { getApiBaseUrl } from '@/utils/apiConfig';
+import { safeLogger } from '@/utils/logging';
+
+const API_BASE = getApiBaseUrl();
 
 export interface Comment {
   id: string;
@@ -40,7 +41,7 @@ export const getCommentsByReport = async (reportId: string): Promise<Comment[]> 
 
     return data.data?.comments || [];
   } catch (error) {
-    console.error('Erro ao buscar comentários:', error);
+    safeLogger.error('Erro ao buscar comentários:', error);
     return [];
   }
 };
@@ -65,7 +66,7 @@ export const createComment = async (commentData: CreateCommentData): Promise<{ s
       message: data.error?.message || data.message
     };
   } catch (error) {
-    console.error('Erro ao criar comentário:', error);
+    safeLogger.error('Erro ao criar comentário:', error);
     return {
       success: false,
       message: 'Erro interno do servidor'
@@ -95,7 +96,7 @@ export const updateComment = async (id: string, content: string): Promise<{ succ
       message: data.message
     };
   } catch (error) {
-    console.error('Erro ao atualizar comentário:', error);
+    safeLogger.error('Erro ao atualizar comentário:', error);
     return {
       success: false,
       message: 'Erro interno do servidor'
@@ -124,7 +125,7 @@ export const deleteComment = async (id: string): Promise<{ success: boolean; mes
       message: data.message
     };
   } catch (error) {
-    console.error('Erro ao deletar comentário:', error);
+    safeLogger.error('Erro ao deletar comentário:', error);
     return {
       success: false,
       message: 'Erro interno do servidor'
@@ -151,7 +152,7 @@ export const getComment = async (id: string): Promise<Comment | null> => {
 
     return data.comment || null;
   } catch (error) {
-    console.error('Erro ao buscar comentário:', error);
+    safeLogger.error('Erro ao buscar comentário:', error);
     return null;
   }
 };
@@ -179,7 +180,7 @@ export const toggleLike = async (targetType: 'comment' | 'report', targetId: str
       likes_count: data.data?.likes_count || data.likes_count || 0
     };
   } catch (error) {
-    console.error('Erro ao curtir/descurtir:', error);
+    safeLogger.error('Erro ao curtir/descurtir:', error);
     return {
       success: false,
       liked: false,
